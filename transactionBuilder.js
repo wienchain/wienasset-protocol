@@ -465,6 +465,68 @@ WienAssetBuilder.prototype.buildSendTransaction = function (args) {
   return self._addInputsForSendTransaction(txb, args)
 }
 
+WienAssetBuilder.prototype.buildSendNativeTransaction = function (args) {
+  var self = this
+  if (!args.utxos) {
+    throw new Error('Must have "utxos"')
+  }
+
+  if (!args.to) {
+    throw new Error('Must have "to"')
+  }
+
+  if (args.fee) {
+    args.fee = parseInt(args.fee)  
+  } else {
+    args.fee = 300000
+  }
+  var txb = new bitcoinjs.TransactionBuilder(self.network === 'testnet' ? wienchainTestnetNetwork : wienchainMainnetNetwork)
+  var financeValue = new BigNumber(0)
+  args.to.forEach(function (payment) {
+    financeValue = financeValue.add(Math.round(payment.amount))
+    txb.addOutput(payment.address, payment.amount)
+  })
+  // if (args.opreturn) {
+  //   // OP RETURN
+  //   var ret = bitcoin.script.compile([
+  //     bitcoin.opcodes.OP_RETURN,
+  //     buffer.codeBuffer
+  //   ])
+
+  //   txb.addOutput(ret, 0)
+  // }
+  args.fee = 100000
+  var currentAmount = new BigNumber(0)
+  var missingbn = new BigNumber(0)
+  missingbn = missingbn.add(financeValue)
+  missingbn = missingbn.add(args.fee)
+  var hasEnoughEquity = false;
+  for (var i = 0; i < args.utxos.length; i++) {
+    const utxo = args.utxos[i];
+    utxo.value = Math.round(utxo.value)
+    if (!(utxo.assets && utxo.assets.length)) {
+      txb.addInput(utxo.txid, utxo.index)
+      currentAmount = currentAmount.add(utxo.value)
+    }
+    if (currentAmount.comparedTo(missingbn) >= 0) {
+      hasEnoughEquity = true
+      break;
+    }
+  }
+    
+  
+  if (!hasEnoughEquity) {
+    throw new Error('Not enough satoshi to cover transaction of ' + missingbn.toString())
+  }
+
+  // Actual Fee
+  args.fee = (txb.tx.ins.length * 1000) + (args.to.length * 1000) + 2000;
+  var lastOutputValue = currentAmount.minus(financeValue.add(args.fee))
+  txb.addOutput(args.financeChangeAddress ? args.financeChangeAddress : (Array.isArray(args.from) ? args.from[0] : args.from), parseInt(lastOutputValue.toString()))
+
+  return { txHex: txb.tx.toHex() };
+}
+
 WienAssetBuilder.prototype._computeCost = function (withfee, args) {
   var self = this
   var fee = withfee ? (args.fee || args.minfee) : 0
