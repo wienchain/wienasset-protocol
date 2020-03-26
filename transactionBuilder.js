@@ -455,9 +455,7 @@ WienAssetBuilder.prototype.buildSendTransaction = function (args) {
   }
 
   if (args.fee) {
-    args.fee = parseInt(args.fee)  
-  } else {
-    args.fee = 5000
+    args.fee = parseInt(args.fee)
   }
 
   var txb = new bitcoinjs.TransactionBuilder(self.network === 'testnet' ? wienchainTestnetNetwork : wienchainMainnetNetwork)
@@ -476,10 +474,9 @@ WienAssetBuilder.prototype.buildSendNativeTransaction = function (args) {
   }
 
   if (args.fee) {
-    args.fee = parseInt(args.fee)  
-  } else {
-    args.fee = 300000
+    args.fee = parseInt(args.fee)
   }
+
   var txb = new bitcoinjs.TransactionBuilder(self.network === 'testnet' ? wienchainTestnetNetwork : wienchainMainnetNetwork)
   var financeValue = new BigNumber(0)
   args.to.forEach(function (payment) {
@@ -495,11 +492,10 @@ WienAssetBuilder.prototype.buildSendNativeTransaction = function (args) {
 
   //   txb.addOutput(ret, 0)
   // }
-  args.fee = 100000
   var currentAmount = new BigNumber(0)
   var missingbn = new BigNumber(0)
   missingbn = missingbn.add(financeValue)
-  missingbn = missingbn.add(args.fee)
+  missingbn = missingbn.add(args.fee || 100000)
   var hasEnoughEquity = false;
   for (var i = 0; i < args.utxos.length; i++) {
     const utxo = args.utxos[i];
@@ -520,7 +516,7 @@ WienAssetBuilder.prototype.buildSendNativeTransaction = function (args) {
   }
 
   // Actual Fee
-  args.fee = (txb.tx.ins.length * 1000) + (args.to.length * 1000) + 2000;
+  args.fee = args.fee || ((txb.tx.ins.length * 1000) + (args.to.length * 1000) + 2000);
   var lastOutputValue = currentAmount.minus(financeValue.add(args.fee))
   txb.addOutput(args.financeChangeAddress ? args.financeChangeAddress : (Array.isArray(args.from) ? args.from[0] : args.from), parseInt(lastOutputValue.toString()))
 
@@ -561,7 +557,6 @@ WienAssetBuilder.prototype._getChangeAmount = function (tx, fee, totalInputValue
 
 WienAssetBuilder.prototype._addInputsForSendTransaction = function (txb, args) {
   var self = this
-  args.fee = 300000
   var satoshiCost = self._computeCost(true, args)
   var totalInputs = { amount: 0 }
   var reedemScripts = []
@@ -622,7 +617,7 @@ WienAssetBuilder.prototype._addInputsForSendTransaction = function (txb, args) {
   }
   debug('reached encoder')
   debug(txb.tx);
-  args.fee = (txb.tx.ins.length * 1000) + (args.to.length * 1000) + 2000; // 2000 for OP_DATA
+  args.fee = args.fee || ((txb.tx.ins.length * 1000) + (args.to.length * 1000) + 2000); // 2000 for OP_DATA
   var encoder = cc.newTransaction(0x5741, TA_TX_VERSION)
   if (!self._tryAddingInputsForFee(txb, args.utxos, totalInputs, args, satoshiCost)) {
     throw new errors.NotEnoughFundsError({
