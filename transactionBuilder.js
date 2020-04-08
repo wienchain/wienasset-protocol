@@ -530,8 +530,10 @@ WienAssetBuilder.prototype._computeCost = function (withfee, args) {
   if (args.to && args.to.length) {
     args.to.forEach(function (to) {
       fee += self.mindustvalue
+      fee += 2000
     })
   }
+  
   if (args.rules || args.metadata) { fee += self.writemultisig ? self.mindustvaluemultisig : 0 }
 
   fee += self.mindustvalue
