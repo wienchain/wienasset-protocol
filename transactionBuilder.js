@@ -530,7 +530,6 @@ WienAssetBuilder.prototype._computeCost = function (withfee, args) {
   if (args.to && args.to.length) {
     args.to.forEach(function (to) {
       fee += self.mindustvalue
-      fee += 2000
     })
   }
   
@@ -559,7 +558,7 @@ WienAssetBuilder.prototype._getChangeAmount = function (tx, fee, totalInputValue
 
 WienAssetBuilder.prototype._addInputsForSendTransaction = function (txb, args) {
   var self = this
-  var satoshiCost = self._computeCost(true, args)
+  var satoshiCost = args.fee ? self._computeCost(true, args) : self._computeCost(false, args)
   var totalInputs = { amount: 0 }
   var reedemScripts = []
   var coloredOutputIndexes = []
@@ -620,10 +619,11 @@ WienAssetBuilder.prototype._addInputsForSendTransaction = function (txb, args) {
   debug('reached encoder')
   debug(txb.tx);
   args.fee = args.fee || ((txb.tx.ins.length * 1000) + (args.to.length * 1000) + 2000); // 2000 for OP_DATA
+  satoshiCost = self._computeCost(true, args)
   var encoder = cc.newTransaction(0x5741, TA_TX_VERSION)
   if (!self._tryAddingInputsForFee(txb, args.utxos, totalInputs, args, satoshiCost)) {
     throw new errors.NotEnoughFundsError({
-      type: 'issuance',
+      type: 'sending',
       fee: args.fee,
       totalCost: satoshiCost,
       missing: satoshiCost - totalInputs.amount
@@ -717,10 +717,9 @@ WienAssetBuilder.prototype._addInputsForSendTransaction = function (txb, args) {
     return assetList[assetId].change > 0
   })
 
-  var splitChange = !(args.financeChangeAddress == false)
   var changeAddress = args.financeChangeAddress || (Array.isArray(args.from) ? args.from[0] : args.from)
 
-  var numOfChanges = (splitChange && coloredChange && lastOutputValue >= 2 * self.mindustvalue) ? 2 : 1
+  var numOfChanges = 2
 
   if (lastOutputValue < numOfChanges * self.mindustvalue) {
     debug('trying to add additionl inputs to cover transaction')
