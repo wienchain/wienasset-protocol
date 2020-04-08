@@ -9,22 +9,46 @@ var findBestMatchByNeededAssets = function (utxos, assetList, key, txb, inputval
   var selectedUtxos = []
   var foundAmount = 0
 
-  // 1. try to find a utxo with such amount of the asset which is greater or equal to the target amount
-  var bestGreaterOrEqualAmountUtxo = findBestGreaterOrEqualAmountUtxo(utxos, assetList, key)
-  if (bestGreaterOrEqualAmountUtxo) {
-    debug('bestGreaterOrEqualAmountUtxo = ', bestGreaterOrEqualAmountUtxo)
-    selectedUtxos[0] = bestGreaterOrEqualAmountUtxo
-  } else {
-    // 2. try to get the minimal number of utxos where the sum of their amount of the asset greater than or equal to the remaining target amount
-    debug('try to get utxos smaller than amount')
-    var utxosSortedByAssetAmount = _.sortBy(utxos, function (utxo) { return -getUtxoAssetAmount(utxo, key) })
-    var found = utxosSortedByAssetAmount.some(function (utxo) {
+  // 1. Find non standard asets
+  _.map(utxos, function (utxo) {
+    debug(utxo.value)
+    if (utxo.value > 5741) {
       selectedUtxos.push(utxo)
       foundAmount += getUtxoAssetAmount(utxo, key)
+    }
+  })
+
+  debug(selectedUtxos);
+  if (selectedUtxos.length == 0) {
+    // 1. try to find a utxo with such amount of the asset which is greater or equal to the target amount
+    var bestGreaterOrEqualAmountUtxo = findBestGreaterOrEqualAmountUtxo(utxos, assetList, key)
+    if (bestGreaterOrEqualAmountUtxo) {
+      debug('bestGreaterOrEqualAmountUtxo = ', bestGreaterOrEqualAmountUtxo)
+      selectedUtxos[0] = bestGreaterOrEqualAmountUtxo
+    } else {
+      // 2. try to get the minimal number of utxos where the sum of their amount of the asset greater than or equal to the remaining target amount
+      debug('try to get utxos smaller than amount')
+      var utxosSortedByAssetAmount = _.sortBy(utxos, function (utxo) { return -getUtxoAssetAmount(utxo, key) })
+      var found = utxosSortedByAssetAmount.some(function (utxo) {
+        selectedUtxos.push(utxo)
+        foundAmount += getUtxoAssetAmount(utxo, key)
+        return foundAmount >= assetList[key].amount
+      })
+      if (!found) selectedUtxos.length = 0
+    }
+  } else {
+    debug('foundAssetwithNonStandardEncoding = ', _.map(selectedUtxos, function (utxo) { return { utxo: (utxo.txid + ':' + utxo.index), amount: getUtxoAssetAmount(utxo, key) } }))
+    var utxosSortedByAssetAmount = _.sortBy(utxos, function (utxo) { return -getUtxoAssetAmount(utxo, key) })
+    var found = utxosSortedByAssetAmount.some(function (utxo) {
+      if (utxo.value == 5741) {
+        selectedUtxos.push(utxo)
+        foundAmount += getUtxoAssetAmount(utxo, key)
+      }
       return foundAmount >= assetList[key].amount
     })
     if (!found) selectedUtxos.length = 0
   }
+
 
   debug('selectedUtxos = ', _.map(selectedUtxos, function (utxo) { return { utxo: (utxo.txid + ':' + utxo.index), amount: getUtxoAssetAmount(utxo, key) } }))
 
