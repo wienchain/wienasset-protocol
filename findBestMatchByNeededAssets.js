@@ -12,7 +12,7 @@ var findBestMatchByNeededAssets = function (utxos, assetList, key, txb, inputval
   // 1. Find non standard asets
   _.map(utxos, function (utxo) {
     debug(utxo.value)
-    if (utxo.value > 5741) {
+    if (utxo.value > 5741 && getUtxoAssetAmount(utxo, key) > 0) {
       selectedUtxos.push(utxo)
       foundAmount += getUtxoAssetAmount(utxo, key)
     }

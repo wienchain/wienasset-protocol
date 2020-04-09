@@ -719,7 +719,7 @@ WienAssetBuilder.prototype._addInputsForSendTransaction = function (txb, args) {
 
   var changeAddress = args.financeChangeAddress || (Array.isArray(args.from) ? args.from[0] : args.from)
 
-  var numOfChanges = 2
+  var numOfChanges = coloredChange ? 2 : 1
 
   if (lastOutputValue < numOfChanges * self.mindustvalue) {
     debug('trying to add additionl inputs to cover transaction')
