@@ -1,68 +1,22 @@
-# Transfer-Encoder
-[![Build Status](https://travis-ci.org/Wienasset/Transfer-Encoder.svg?branch=master)](https://travis-ci.org/Wienasset/Transfer-Encoder) [![Coverage Status](https://coveralls.io/repos/Wienasset/Transfer-Encoder/badge.svg?branch=master)](https://coveralls.io/r/Wienasset/Transfer-Encoder?branch=master) [![npm version](https://badge.fury.io/js/cc-transfer-encoder.svg)](http://badge.fury.io/js/cc-transfer-encoder)  [![Slack Status](http://slack.coloredcoins.org/badge.svg)](http://slack.coloredcoins.org)
+# WienAsset Protocol
+WienAsset Protocol provides the definition, encode and decode functions that recognize a WienAsset Encoding
 
-[![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
+### Documentation
+https://wienchain.github.io/wienasset-protocol
 
-Transfer-Encoder provides the encode/decode functions between a Colored Coins transfer Object to buffer
-
-### Installation
-
-```sh
-$ npm install cc-transfer-encoder
-```
-
-
-### Encode
-
-Params:
-
-
-
-```js
-
-
-```
-
-Returns a Buffer.from holding the encoded transfer.
-
-##### Example:
-
-```js
-let transferEncoder = require('cc-transfer-encoder')
-
-
-```
-
-### Decode
-
-Params:
-
-- consume - takes a consumable buffer (You can use [buffer-consumer] like in the example to create one)
-
-Returns a Colored Coins payment Object
-
-##### Example:
-
-```js
-let transferEncoder = require('cc-transfer-encoder')
-
-```
-
-### Testing
-
-In order to test you need to install [mocha] globaly on your machine
-
-```sh
-$ cd /"module-path"/cc-transfer-Encoder
-$ mocha
-```
-
-
-License
-----
-
-[Apache-2.0](http://www.apache.org/licenses/LICENSE-2.0)
-
-
-[mocha]:https://www.npmjs.com/package/mocha
-[buffer-consumer]:https://www.npmjs.com/package/buffer-consumer
+- Introduction
+    - [Wienchain](https://wienchain.github.io/wienasset-protocol/#/Wienchain.md)
+    - [InterPlanetary File System](https://wienchain.github.io/wienasset-protocol/#/IPFS.md)
+    - [WienAsset](https://wienchain.github.io/wienasset-protocol/#/Wienasset.md)
+- Technical Protocol
+    - [Embedding Scheme](https://wienchain.github.io/wienasset-protocol/#/Embedding-Scheme.md)
+    - [OP_CODEs](https://wienchain.github.io/wienasset-protocol/#/OP_CODEs.md)
+    - [Number Encoding](https://wienchain.github.io/wienasset-protocol/#/Number-Encoding.md)
+    - [Transfer Instructions](https://wienchain.github.io/wienasset-protocol/#/Transfer-Instructions.md)
+    - [Asset IDs](https://wienchain.github.io/wienasset-protocol/#/Asset-ID.md)
+    - [Metadata Handling](https://wienchain.github.io/wienasset-protocol/#/Metadata.md)
+    - [Static Data](https://wienchain.github.io/wienasset-protocol/#/Static-Data.md)
+    - [Rules](https://wienchain.github.io/wienasset-protocol/#/Rules.md)
+- Miscellaneous
+    - [FAQ](https://wienchain.github.io/wienasset-protocol/#/FAQ.md)
+    - [Data Storage Methods](https://wienchain.github.io/wienasset-protocol/#/Data-Storage-Methods.md)

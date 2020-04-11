@@ -1,7 +1,7 @@
 {
   "name": "wienasset-protocol",
-  "version": "1.1.2",
-  "description": "The encoding/decoding functions for the wienasset scheme transfer set of OP_CODES",
+  "version": "1.0.0",
+  "description": "WienAsset Protocol provides the definition, encode and decode functions that recognize a WienAsset Encoding",
   "main": "index.js",
   "dependencies": {
     "bignumber.js": "^9.0.0",
@@ -9,12 +9,12 @@
     "bs58check": "1.0.8",
     "clone": "^2.1.2",
     "crypto-hashing": "0.3.1",
-    "debug": "2.2.0",
-    "sffc-encoder": "^0.1.12",
-    "wienasset-errors": "github:wienchain/wienasset-errors"
+    "debug": "^4.1.1",
+    "sffc-encoder": "^0.1.12"
   },
   "devDependencies": {
     "coveralls": "^3.0.11",
+    "docsify": "^4.11.3",
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.10.1",
     "eslint-config-standard": "^14.1.1",
@@ -35,7 +35,8 @@
     "test": "nyc --reporter=html --reporter=text mocha",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "lint": "eslint src/**/*.js test/**/*.js --color",
-    "lint:fix": "eslint src/**/*.js test/**/*.js --fix"
+    "lint:fix": "eslint src/**/*.js test/**/*.js --fix",
+    "docsify": "docsify serve docs"
   },
   "author": "thehobbit85",
   "license": "Apache-2.0",
