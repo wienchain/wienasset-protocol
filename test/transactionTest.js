@@ -5,7 +5,6 @@ describe('Create Transaction from raw data', function () {
   this.timeout(0)
   const torrentHash = Buffer.alloc(20)
   const sha2 = Buffer.alloc(32)
-  const hex3 = '434301028d5e6b9e6543d917e9a1a35e3680dabc4922750c201201201210'
   const data = {
     type: 'issuance',
     amount: 13232,
@@ -56,7 +55,7 @@ describe('Create Transaction from raw data', function () {
 
     const toBuffer = function (val) {
       val = val.toString(16)
-      if (val.length % 2 == 1) {
+      if (val.length % 2 === 1) {
         val = '0' + val
       }
       return Buffer.from(val, 'hex')

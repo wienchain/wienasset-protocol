@@ -10,7 +10,7 @@ const consumer = function (buff) {
 
 const toBuffer = function (val) {
   val = val.toString(16)
-  if (val.length % 2 == 1) {
+  if (val.length % 2 === 1) {
     val = '0' + val
   }
   return Buffer.from(val, 'hex')
@@ -37,7 +37,6 @@ describe('80 byte OP_RETURN', function () {
     lockStatus: false,
     protocol: 0x5741, // Error when start with 0
     version: 0x03,
-    lockStatus: true,
     aggregationPolicy: 'aggregatable',
     payments: [],
   }

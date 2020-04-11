@@ -29,7 +29,7 @@ const padLeadingZeros = function (hex, byteSize) {
 
 const decodeAmountByVersion = function (version, consume, divisibility) {
   const decodedAmount = sffc.decode(consume)
-  return version == 0x01
+  return version === 0x01
     ? decodedAmount / Math.pow(10, divisibility)
     : decodedAmount
 }
@@ -126,18 +126,18 @@ module.exports = {
     }
   },
 
-  decode: function (op_code_buffer) {
+  decode: function (opCodeBuffer) {
     const data = {}
-    if (!Buffer.isBuffer(op_code_buffer)) {
-      op_code_buffer = Buffer.from(op_code_buffer, 'hex')
+    if (!Buffer.isBuffer(opCodeBuffer)) {
+      opCodeBuffer = Buffer.from(opCodeBuffer, 'hex')
     }
-    const byteSize = op_code_buffer.length
-    const lastByte = op_code_buffer.slice(-1)
+    const byteSize = opCodeBuffer.length
+    const lastByte = opCodeBuffer.slice(-1)
     const issueTail = issueFlagsCodex.decode(consumer(lastByte))
     data.divisibility = issueTail.divisibility
     data.lockStatus = issueTail.lockStatus
     data.aggregationPolicy = issueTail.aggregationPolicy
-    const consume = consumer(op_code_buffer.slice(0, byteSize - 1))
+    const consume = consumer(opCodeBuffer.slice(0, byteSize - 1))
     data.protocol = parseInt(consume(2).toString('hex'), 16)
     data.version = parseInt(consume(1).toString('hex'), 16)
     data.multiSig = []

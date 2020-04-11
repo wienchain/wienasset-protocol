@@ -10,7 +10,7 @@ const consumer = function (buff) {
 
 const toBuffer = function (val) {
   val = val.toString(16)
-  if (val.length % 2 == 1) {
+  if (val.length % 2 === 1) {
     val = '0' + val
   }
   return Buffer.from(val, 'hex')
@@ -19,23 +19,6 @@ const toBuffer = function (val) {
 describe('Wienasset transfer Decoding', function () {
   it('should return the right decoding', function (done) {
     this.timeout(0)
-    const torrentHash = Buffer.from(20)
-    torrentHash.fill(0)
-    torrentHash[3] = 0x23
-    torrentHash[4] = 0x2f
-    torrentHash[2] = 0xd3
-    torrentHash[12] = 0xe3
-    torrentHash[19] = 0xa3
-    torrentHash[11] = 0x21
-    const sha2 = Buffer.from(32)
-    sha2.fill(0)
-    sha2[0] = 0xf3
-    sha2[1] = 0x2f
-    sha2[12] = 0x23
-    sha2[16] = 0xf3
-    sha2[30] = 0x2f
-    sha2[21] = 0x23
-    sha2[11] = 0x2f
     const ipfsHash = Buffer.from(
       '1220f1e820d85d82f6d7493b5e4446a1b9c0a4e0321885f1e47293fd6c081affaedf',
       'hex'
@@ -45,8 +28,7 @@ describe('Wienasset transfer Decoding', function () {
       version: 0x03,
     }
 
-    data.sha2 = sha2
-    data.torrentHash = torrentHash
+    data.ipfsHash = ipfsHash
 
     data.payments = []
     data.payments.push({

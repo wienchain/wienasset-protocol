@@ -76,7 +76,7 @@ WienAssetBuilder.prototype.buildIssueTransaction = function (args) {
 
   args.divisibility = args.divisibility || 0
   args.aggregationPolicy = args.aggregationPolicy || 'aggregatable'
-  if (args.aggregationPolicy == 'aggregatable') args.fee = 500000000000
+  if (args.aggregationPolicy === 'aggregatable') args.fee = 500000000000
 
   const txb = new bitcoinjs.TransactionBuilder(
     self.network === 'testnet'
@@ -298,7 +298,7 @@ WienAssetBuilder.prototype._encodeColorScheme = function (args) {
   }
   encoder.setLockStatus(lockStatus)
   encoder.setAggregationPolicy(args.aggregationPolicy)
-  if (args.aggregationPolicy == 'aggregatable') {
+  if (args.aggregationPolicy === 'aggregatable') {
     encoder.setAmount(args.amount, args.divisibility)
   } else {
     encoder.setAmount(1, 0)
@@ -354,7 +354,7 @@ WienAssetBuilder.prototype._encodeColorScheme = function (args) {
     buffer.codeBuffer,
   ])
 
-  if (args.aggregationPolicy == 'aggregatable') {
+  if (args.aggregationPolicy === 'aggregatable') {
     txb.addOutput(ret, 500000000000)
   } else {
     txb.addOutput(ret, 100000000)
@@ -399,7 +399,7 @@ WienAssetBuilder.prototype._encodeColorScheme = function (args) {
     })
   }
 
-  const splitChange = !(args.financeChangeAddress == false)
+  const splitChange = !(args.financeChangeAddress === false)
   const changeAddress = args.financeChangeAddress || args.issueAddress
 
   if (
@@ -449,7 +449,6 @@ WienAssetBuilder.prototype._generateMultisigAddress = function (pubKeys, m) {
 }
 
 WienAssetBuilder.prototype._addHashesOutput = function (tx, address, ipfsHash) {
-  const self = this
   const chunks = []
   chunks.push(bitcoinjs.opcodes.OP_1)
   chunks.push(
@@ -853,7 +852,7 @@ WienAssetBuilder.prototype._addInputsForSendTransaction = function (txb, args) {
     })
   }
 
-  for (asset in assetList) {
+  for (const asset in assetList) {
     const currentAsset = assetList[asset]
     debug('encoding asset ' + asset)
     if (!currentAsset.done) {

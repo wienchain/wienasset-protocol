@@ -227,7 +227,7 @@ describe('Payment Decode Encode', function () {
       function () {
         paymentEncode.encode(testCase)
       },
-      /Output Can\'t be negative/,
+      /Output Can't be negative/,
       'Should Throw Error'
     )
     done()

@@ -81,12 +81,12 @@ function Transaction(data) {
   this.ipfsHash = data.ipfsHash
 }
 
-Transaction.fromHex = function (op_return) {
-  if (!Buffer.isBuffer(op_return)) {
-    op_return = Buffer.from(op_return, 'hex')
+Transaction.fromHex = function (opReturn) {
+  if (!Buffer.isBuffer(opReturn)) {
+    opReturn = Buffer.from(opReturn, 'hex')
   }
-  const decoder = encodingLookup[op_return[3]]
-  const rawData = decoder.decode(op_return)
+  const decoder = encodingLookup[opReturn[3]]
+  const rawData = decoder.decode(opReturn)
   rawData.type = decoder.type
   rawData.payments = paymentsSkipToInput(rawData.payments)
   return new Transaction(rawData)

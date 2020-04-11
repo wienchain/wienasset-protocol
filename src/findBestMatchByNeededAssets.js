@@ -25,7 +25,7 @@ const findBestMatchByNeededAssets = function (
   })
 
   debug(selectedUtxos)
-  if (selectedUtxos.length == 0) {
+  if (selectedUtxos.length === 0) {
     // 1. try to find a utxo with such amount of the asset which is greater or equal to the target amount
     const bestGreaterOrEqualAmountUtxo = findBestGreaterOrEqualAmountUtxo(
       utxos,
@@ -62,7 +62,7 @@ const findBestMatchByNeededAssets = function (
       return -getUtxoAssetAmount(utxo, key)
     })
     const found = utxosSortedByAssetAmount.some(function (utxo) {
-      if (utxo.value == 5741) {
+      if (utxo.value === 5741) {
         selectedUtxos.push(utxo)
         foundAmount += getUtxoAssetAmount(utxo, key)
       }
@@ -106,7 +106,7 @@ const findBestMatchByNeededAssets = function (
             !txb.tx.ins.some(function (txutxo, i) {
               if (
                 txutxo.index === utxo.index &&
-                Buffer(txutxo.hash, 'hex') === utxo.txid
+                Buffer.from(txutxo.hash, 'hex') === utxo.txid
               ) {
                 debug('more assets in same utxo')
                 inputIndex = i

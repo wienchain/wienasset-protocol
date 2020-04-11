@@ -122,9 +122,9 @@ module.exports = {
     }
   },
 
-  decode: function (op_code_buffer) {
+  decode: function (opCodeBuffer) {
     const data = {}
-    const consume = consumer(op_code_buffer)
+    const consume = consumer(opCodeBuffer)
     data.protocol = parseInt(consume(2).toString('hex'), 16)
     data.version = parseInt(consume(1).toString('hex'), 16)
     data.multiSig = []
