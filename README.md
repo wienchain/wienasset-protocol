@@ -23,12 +23,12 @@ Params:
 
 ```
 
-Returns a new Buffer holding the encoded transfer.
+Returns a Buffer.from holding the encoded transfer.
 
 ##### Example:
 
 ```js
-var transferEncoder = require('cc-transfer-encoder')
+let transferEncoder = require('cc-transfer-encoder')
 
 
 ```
@@ -44,7 +44,7 @@ Returns a Colored Coins payment Object
 ##### Example:
 
 ```js
-var transferEncoder = require('cc-transfer-encoder')
+let transferEncoder = require('cc-transfer-encoder')
 
 ```
 

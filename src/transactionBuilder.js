@@ -1,43 +1,46 @@
-var bitcoinjs = require('bitcoinjs-lib')
-var BigNumber = require('bignumber.js')
-var _ = require('lodash')
-var encodeAssetId = require('./assetIdEncoder')
-var cc = require('./transaction')
-var findBestMatchByNeededAssets = require('./findBestMatchByNeededAssets')
-var Buffer = require('safe-buffer').Buffer
-var debug = require('debug')('transactionBuilder')
-var errors = require('wienasset-errors')
-var bufferReverse = require('buffer-reverse')
+const bitcoinjs = require('bitcoinjs-lib')
+const BigNumber = require('bignumber.js')
+const _ = require('lodash')
+const encodeAssetId = require('./assetIdEncoder')
+const cc = require('./transaction')
+const findBestMatchByNeededAssets = require('./findBestMatchByNeededAssets')
+const debug = require('debug')('transactionBuilder')
+const errors = require('wienasset-errors')
+const bufferReverse = require('buffer-reverse')
 
-var TA_TX_VERSION = 0x03
-var wienchainTestnetNetwork = {
+const TA_TX_VERSION = 0x03
+const wienchainTestnetNetwork = {
   messagePrefix: '\x18WienChain Signed Message:\n',
   bip32: {
     public: 0x043587cf,
-    private: 0x04358394
+    private: 0x04358394,
   },
   pubKeyHash: 0x87,
   scriptHash: 0x13,
   wif: 0xef,
-  dustThreshold: 546
+  dustThreshold: 546,
 }
 
-var wienchainMainnetNetwork = {
+const wienchainMainnetNetwork = {
   messagePrefix: '\x18WienChain Signed Message:\n',
   bip32: {
     public: 0x0488b21e,
-    private: 0x0488ade4
+    private: 0x0488ade4,
   },
   pubKeyHash: 0x49,
   scriptHash: 0x12,
   wif: 0xa1,
-  dustThreshold: 546
+  dustThreshold: 546,
 }
 
-var WienAssetBuilder = function (properties) {
+const WienAssetBuilder = function (properties) {
   properties = properties || {}
 
-  if (typeof properties.network !== 'undefined' && properties.network !== 'testnet' && properties.network !== 'mainnet') {
+  if (
+    typeof properties.network !== 'undefined' &&
+    properties.network !== 'testnet' &&
+    properties.network !== 'mainnet'
+  ) {
     throw new Error('"network" must be either "testnet" or "mainnet"')
   }
   this.network = properties.network || 'mainnet' // 'testnet' or 'mainnet'
@@ -53,7 +56,7 @@ var WienAssetBuilder = function (properties) {
 }
 
 WienAssetBuilder.prototype.buildIssueTransaction = function (args) {
-  var self = this
+  const self = this
   if (!args.utxos) {
     throw new Error('Must have "utxos"')
   }
@@ -75,24 +78,31 @@ WienAssetBuilder.prototype.buildIssueTransaction = function (args) {
   args.aggregationPolicy = args.aggregationPolicy || 'aggregatable'
   if (args.aggregationPolicy == 'aggregatable') args.fee = 500000000000
 
-  var txb = new bitcoinjs.TransactionBuilder(self.network === 'testnet' ? wienchainTestnetNetwork : wienchainMainnetNetwork)
+  const txb = new bitcoinjs.TransactionBuilder(
+    self.network === 'testnet'
+      ? wienchainTestnetNetwork
+      : wienchainMainnetNetwork
+  )
   // find inputs to cover the issuance
-  var ccArgs = self._addInputsForIssueTransaction(txb, args)
+  const ccArgs = self._addInputsForIssueTransaction(txb, args)
   if (!ccArgs.success) {
     throw new errors.NotEnoughFundsError({ type: 'issue' })
   }
   _.assign(ccArgs, args)
-  var res = self._encodeColorScheme(ccArgs)
+  const res = self._encodeColorScheme(ccArgs)
   res.assetId = ccArgs.assetId
   return res
 }
 
-WienAssetBuilder.prototype._addInputsForIssueTransaction = function (txb, args) {
-  var self = this
-  var utxos = args.utxos
-  var assetId = ''
-  var current
-  var cost
+WienAssetBuilder.prototype._addInputsForIssueTransaction = function (
+  txb,
+  args
+) {
+  const self = this
+  const utxos = args.utxos
+  let assetId = ''
+  let current
+  let cost
 
   // simple mode
   if (args.financeOutput) {
@@ -101,8 +111,12 @@ WienAssetBuilder.prototype._addInputsForIssueTransaction = function (txb, args) 
 
     txb.addInput(args.financeOutputTxid, args.financeOutput.n)
     if (args.flags && args.flags.injectPreviousOutput) {
-      var chunks = bitcoinjs.script.decompile(new Buffer(args.financeOutput.scriptPubKey.hex, 'hex'))
-      txb.tx.ins[txb.tx.ins.length - 1].script = bitcoinjs.script.compile(chunks)
+      const chunks = bitcoinjs.script.decompile(
+        Buffer.from(args.financeOutput.scriptPubKey.hex, 'hex')
+      )
+      txb.tx.ins[txb.tx.ins.length - 1].script = bitcoinjs.script.compile(
+        chunks
+      )
     }
 
     assetId = self._encodeAssetId(
@@ -111,23 +125,34 @@ WienAssetBuilder.prototype._addInputsForIssueTransaction = function (txb, args) 
       args.financeOutput.n,
       args.financeOutput.scriptPubKey.hex,
       args.divisibility,
-      args.aggregationPolicy)
+      args.aggregationPolicy
+    )
 
-    return {txb: txb, args: args, change: current - cost, assetId: assetId, totalInputs: {amount: current}}
+    return {
+      txb: txb,
+      args: args,
+      change: current - cost,
+      assetId: assetId,
+      totalInputs: { amount: current },
+    }
   }
 
   // add to transaction enough inputs so we can cover the cost
   // send change if any back to us
   current = new BigNumber(0)
   cost = new BigNumber(self._getIssuanceCost(args))
-  var change = new BigNumber(0)
-  var hasEnoughEquity = utxos.some(function (utxo) {
-    if (!isInputInTx(txb.tx, utxo.txid, utxo.index) && !(utxo.assets && utxo.assets.length)) {
+  let change = new BigNumber(0)
+  const hasEnoughEquity = utxos.some(function (utxo) {
+    if (
+      !isInputInTx(txb.tx, utxo.txid, utxo.index) &&
+      !(utxo.assets && utxo.assets.length)
+    ) {
       debug('current amount ' + utxo.value + ' needed ' + cost)
       debug('utxo.txid', utxo.txid)
       debug('utxo.index', utxo.index)
       txb.addInput(utxo.txid, utxo.index)
-      if (txb.tx.ins.length === 1) { // encode asset
+      if (txb.tx.ins.length === 1) {
+        // encode asset
         debug(txb.tx.ins[0].script)
         assetId = self._encodeAssetId(
           args.reissueable,
@@ -135,35 +160,58 @@ WienAssetBuilder.prototype._addInputsForIssueTransaction = function (txb, args) 
           utxo.index,
           utxo.scriptPubKey.hex,
           args.divisibility,
-          args.aggregationPolicy)
+          args.aggregationPolicy
+        )
       }
       debug('math: ' + current.toNumber() + ' ' + utxo.value)
       current = current.add(utxo.value)
       if (args.flags && args.flags.injectPreviousOutput) {
-        var chunks = bitcoinjs.script.decompile(new Buffer(utxo.scriptPubKey.hex, 'hex'))
-        txb.tx.ins[txb.tx.ins.length - 1].script = bitcoinjs.script.compile(chunks)
+        const chunks = bitcoinjs.script.decompile(
+          Buffer.from(utxo.scriptPubKey.hex, 'hex')
+        )
+        txb.tx.ins[txb.tx.ins.length - 1].script = bitcoinjs.script.compile(
+          chunks
+        )
       }
-      debug('current amount: ' + current + ' projected cost: ' + cost + ' are were there yet: ' + (current.comparedTo(cost) >= 0))
+      debug(
+        'current amount: ' +
+          current +
+          ' projected cost: ' +
+          cost +
+          ' are were there yet: ' +
+          (current.comparedTo(cost) >= 0)
+      )
     } else {
-      debug('skipping utxo for input, asset found in utxo: ' + utxo.txid + ':' + utxo.index)
+      debug(
+        'skipping utxo for input, asset found in utxo: ' +
+          utxo.txid +
+          ':' +
+          utxo.index
+      )
     }
     return current.comparedTo(cost) >= 0
   })
   debug('hasEnoughEquity: ' + hasEnoughEquity)
   if (!hasEnoughEquity) {
-    return {success: false}
+    return { success: false }
   }
 
   change = current - cost
   debug('finished adding inputs to tx')
   debug('change ' + change)
-  return {success: true, txb: txb, change: change, assetId: assetId, totalInputs: { amount: current }}
+  return {
+    success: true,
+    txb: txb,
+    change: change,
+    assetId: assetId,
+    totalInputs: { amount: current },
+  }
 }
 
 WienAssetBuilder.prototype._getIssuanceCost = function (args) {
-  var self = this
-  var fee = args.fee || self.defaultFee
-  var totalCost = fee
+  const self = this
+  const fee = args.fee || self.defaultFee
+  let totalCost = fee
   debug('_getTotalIssuenceCost: fee =', fee)
   if (args.transfer && args.transfer.length) {
     args.transfer.forEach(function (to) {
@@ -183,46 +231,60 @@ WienAssetBuilder.prototype._getIssuanceCost = function (args) {
   return totalCost
 }
 
-WienAssetBuilder.prototype._encodeAssetId = function (reissueable, txid, nvout, hex, divisibility, aggregationPolicy) {
-  var opts = {
-    ccdata: [{
-      type: 'issuance',
-      lockStatus: !reissueable,
-      divisibility: divisibility,
-      aggregationPolicy: aggregationPolicy
-    }],
-    vin: [{
-      txid: txid,
-      vout: nvout,
-      previousOutput: {
-        hex: hex
-      }
-    }]
+WienAssetBuilder.prototype._encodeAssetId = function (
+  reissueable,
+  txid,
+  nvout,
+  hex,
+  divisibility,
+  aggregationPolicy
+) {
+  const opts = {
+    ccdata: [
+      {
+        type: 'issuance',
+        lockStatus: !reissueable,
+        divisibility: divisibility,
+        aggregationPolicy: aggregationPolicy,
+      },
+    ],
+    vin: [
+      {
+        txid: txid,
+        vout: nvout,
+        previousOutput: {
+          hex: hex,
+        },
+      },
+    ],
   }
 
   if (!reissueable) {
     debug('sending assetIdEncoder locked, first input = ' + txid + ':' + nvout)
   } else {
-    debug('sending assetIdEncoder unlocked, first input previousOutput = ', opts.vin[0].previousOutput)
+    debug(
+      'sending assetIdEncoder unlocked, first input previousOutput = ',
+      opts.vin[0].previousOutput
+    )
   }
 
   debug('encoding asset is locked: ' + !reissueable)
   debug(opts)
-  var assetId = encodeAssetId(opts)
+  const assetId = encodeAssetId(opts)
   debug('assetId: ' + assetId)
   return assetId
 }
 
 WienAssetBuilder.prototype._encodeColorScheme = function (args) {
-  var self = this
-  var addMultisig = false
-  var encoder = cc.newTransaction(0x5741, TA_TX_VERSION)
-  var reedemScripts = []
-  var coloredOutputIndexes = []
-  var txb = args.txb
-  var coloredAmount = args.amount
-  var fee = args.fee || self.defaultFee
-  var lockStatus
+  const self = this
+  let addMultisig = false
+  const encoder = cc.newTransaction(0x5741, TA_TX_VERSION)
+  const reedemScripts = []
+  const coloredOutputIndexes = []
+  const txb = args.txb
+  let coloredAmount = args.amount
+  const fee = args.fee || self.defaultFee
+  let lockStatus
   if (typeof args.lockStatus !== 'undefined') {
     lockStatus = args.lockStatus
   } else if (typeof args.reissueable !== 'undefined') {
@@ -252,8 +314,15 @@ WienAssetBuilder.prototype._encodeColorScheme = function (args) {
       coloredAmount -= transferobj.amount
       // check multisig
       if (transferobj.pubKeys && transferobj.m) {
-        var multisig = self._generateMultisigAddress(transferobj.pubKeys, transferobj.m)
-        reedemScripts.push({index: txb.tx.outs.length, reedemScript: multisig.reedemScript, address: multisig.address})
+        const multisig = self._generateMultisigAddress(
+          transferobj.pubKeys,
+          transferobj.m
+        )
+        reedemScripts.push({
+          index: txb.tx.outs.length,
+          reedemScript: multisig.reedemScript,
+          address: multisig.address,
+        })
         txb.addOutput(multisig.address, self.mindustvalue)
       } else {
         txb.addOutput(transferobj.address, self.mindustvalue)
@@ -262,25 +331,28 @@ WienAssetBuilder.prototype._encodeColorScheme = function (args) {
   }
 
   if (coloredAmount < 0) {
-    throw new errors.CCTransactionConstructionError({ explanation: 'transferring more than issued' })
+    throw new errors.CCTransactionConstructionError({
+      explanation: 'transferring more than issued',
+    })
   }
 
   // add OP_RETURN
   debug('before encode done')
-  var buffer = encoder.encode()
+  let buffer = encoder.encode()
 
   debug('encoding done, buffer: ', buffer)
   if (buffer.leftover && buffer.leftover.length > 0) {
     encoder.shiftOutputs()
     buffer = encoder.encode()
     addMultisig = true
-    reedemScripts.forEach(function (item) { item.index += 1 })
+    reedemScripts.forEach(function (item) {
+      item.index += 1
+    })
   }
-  var ret = bitcoinjs.script.compile([
+  const ret = bitcoinjs.script.compile([
     bitcoinjs.opcodes.OP_RETURN,
-    buffer.codeBuffer
+    buffer.codeBuffer,
   ])
-
 
   if (args.aggregationPolicy == 'aggregatable') {
     txb.addOutput(ret, 500000000000)
@@ -296,31 +368,46 @@ WienAssetBuilder.prototype._encodeColorScheme = function (args) {
   // need to encode hashes in first tx
   if (addMultisig) {
     if (buffer.leftover && buffer.leftover.length === 1) {
-      self._addHashesOutput(txb.tx, args.pubKeyReturnMultisigDust, buffer.leftover[0])
+      self._addHashesOutput(
+        txb.tx,
+        args.pubKeyReturnMultisigDust,
+        buffer.leftover[0]
+      )
     } else {
       throw new Error('enough room for hashes: we offsetted inputs for nothing')
     }
   }
 
   // add change
-  var allOutputValues = _.sumBy(txb.tx.outs, function (output) { return output.value })
-  debug('all inputs: ' + args.totalInputs.amount + ' all outputs: ' + allOutputValues)
-  var lastOutputValue = args.totalInputs.amount - (allOutputValues + fee)
+  const allOutputValues = _.sumBy(txb.tx.outs, function (output) {
+    return output.value
+  })
+  debug(
+    'all inputs: ' +
+      args.totalInputs.amount +
+      ' all outputs: ' +
+      allOutputValues
+  )
+  let lastOutputValue = args.totalInputs.amount - (allOutputValues + fee)
   if (lastOutputValue < self.mindustvalue) {
-    var totalCost = self.mindustvalue + args.totalInputs.amount.toNumber()
+    const totalCost = self.mindustvalue + args.totalInputs.amount.toNumber()
     throw new errors.NotEnoughFundsError({
       type: 'issuance',
       fee: fee,
       totalCost: totalCost,
-      missing: self.mindustvalue - lastOutputValue
+      missing: self.mindustvalue - lastOutputValue,
     })
   }
 
-  var splitChange = !(args.financeChangeAddress == false)
-  var changeAddress = args.financeChangeAddress || args.issueAddress
+  const splitChange = !(args.financeChangeAddress == false)
+  const changeAddress = args.financeChangeAddress || args.issueAddress
 
-  if (splitChange && lastOutputValue >= 2 * self.mindustvalue && coloredAmount > 0) {
-    var bitcoinChange = lastOutputValue - self.mindustvalue
+  if (
+    splitChange &&
+    lastOutputValue >= 2 * self.mindustvalue &&
+    coloredAmount > 0
+  ) {
+    const bitcoinChange = lastOutputValue - self.mindustvalue
     lastOutputValue = self.mindustvalue
     debug('adding bitcoin change output with: ' + bitcoinChange)
     txb.addOutput(changeAddress, bitcoinChange)
@@ -338,34 +425,46 @@ WienAssetBuilder.prototype._encodeColorScheme = function (args) {
   txb.addOutput(args.issueAddress, lastOutputValue || args.change)
   debug('txHex ', txb.tx.toHex())
 
-  return { txHex: txb.tx.toHex(), multisigOutputs: reedemScripts, coloredOutputIndexes: _.uniq(coloredOutputIndexes) }
+  return {
+    txHex: txb.tx.toHex(),
+    multisigOutputs: reedemScripts,
+    coloredOutputIndexes: _.uniq(coloredOutputIndexes),
+  }
 }
 
 WienAssetBuilder.prototype._generateMultisigAddress = function (pubKeys, m) {
-  var self = this
-  var ecpubkeys = []
+  const self = this
+  const ecpubkeys = []
   pubKeys.forEach(function (key) {
     ecpubkeys.push(bitcoinjs.ECPubKey.fromHex(key))
   })
-  var script = bitcoinjs.scripts.multisigOutput(m, ecpubkeys)
-  var hash = bitcoinjs.crypto.hash160(script)
-  var multisigAdress = new bitcoinjs.Address(hash, (self.network === 'testnet') ? 0x13 : 0x12)
-  var sendto = multisigAdress.toBase58Check()
+  const script = bitcoinjs.scripts.multisigOutput(m, ecpubkeys)
+  const hash = bitcoinjs.crypto.hash160(script)
+  const multisigAdress = new bitcoinjs.Address(
+    hash,
+    self.network === 'testnet' ? 0x13 : 0x12
+  )
+  const sendto = multisigAdress.toBase58Check()
   return { address: sendto, reedemScript: script.toHex() }
 }
 
 WienAssetBuilder.prototype._addHashesOutput = function (tx, address, ipfsHash) {
-  var self = this
-  var chunks = []
+  const self = this
+  const chunks = []
   chunks.push(bitcoinjs.opcodes.OP_1)
-  chunks.push(new Buffer('023cce9dee67e1c52da20b5b8dc68482a264c98b864ce5cd5a355f7608131aae9b', 'hex'));
-  chunks.push(Buffer.concat([new Buffer('03', 'hex'), ipfsHash], 40))
+  chunks.push(
+    Buffer.from(
+      '023cce9dee67e1c52da20b5b8dc68482a264c98b864ce5cd5a355f7608131aae9b',
+      'hex'
+    )
+  )
+  chunks.push(Buffer.concat([Buffer.from('03', 'hex'), ipfsHash], 40))
   chunks.push(bitcoinjs.opcodes.OP_2)
   chunks.push(bitcoinjs.opcodes.OP_CHECKMULTISIG)
 
   debug('chunks', chunks)
 
-  var script = bitcoinjs.script.compile(chunks)
+  const script = bitcoinjs.script.compile(chunks)
 
   // try compute value to pass mindust
   // TODO: actually comput it with the fee from the api request, this assumes static fee per kb
@@ -373,26 +472,36 @@ WienAssetBuilder.prototype._addHashesOutput = function (tx, address, ipfsHash) {
 }
 
 WienAssetBuilder.prototype._getNoneMinDustByScript = function (script) {
-  var self = this
+  const self = this
   // add 9 to aacount for bitcoind SER_DISK serilaztion before the multiplication
-  return (((self.defaultFeePerKb * (script.length + 148 + 9)) / 1000) * 3)
+  return ((self.defaultFeePerKb * (script.length + 148 + 9)) / 1000) * 3
 }
 
-function isInputInTx (tx, txid, index) {
+function isInputInTx(tx, txid, index) {
   return tx.ins.some(function (input) {
-    var id = bufferReverse(input.hash)
-    return (id.toString('hex') === txid && input.index === index)
+    const id = bufferReverse(input.hash)
+    return id.toString('hex') === txid && input.index === index
   })
 }
 
-WienAssetBuilder.prototype._insertSatoshiToTransaction = function (utxos, txb, missing, inputsValue, metadata) {
+WienAssetBuilder.prototype._insertSatoshiToTransaction = function (
+  utxos,
+  txb,
+  missing,
+  inputsValue,
+  metadata
+) {
   debug('missing: ' + missing)
-  var paymentDone = false
-  var missingbn = new BigNumber(missing)
-  var financeValue = new BigNumber(0)
-  var currentAmount = new BigNumber(0)
+  let paymentDone = false
+  const missingbn = new BigNumber(missing)
+  let financeValue = new BigNumber(0)
+  let currentAmount = new BigNumber(0)
   if (metadata.financeOutput && metadata.financeOutputTxid) {
-    if (isInputInTx(txb.tx, metadata.financeOutputTxid, metadata.financeOutput.n)) { return false }
+    if (
+      isInputInTx(txb.tx, metadata.financeOutputTxid, metadata.financeOutput.n)
+    ) {
+      return false
+    }
     financeValue = new BigNumber(metadata.financeOutput.value)
     debug('finance sent through api with value ' + financeValue.toNumber())
     if (financeValue.minus(missingbn) >= 0) {
@@ -401,28 +510,42 @@ WienAssetBuilder.prototype._insertSatoshiToTransaction = function (utxos, txb, m
       txb.tx.addInput(metadata.financeOutputTxid, metadata.financeOutput.n)
       inputsValue.amount += financeValue.toNumber()
       if (metadata.flags && metadata.flags.injectPreviousOutput) {
-        var chunks = bitcoinjs.script.decompile(new Buffer(metadata.financeOutput.scriptPubKey.hex, 'hex'))
+        const chunks = bitcoinjs.script.decompile(
+          Buffer.from(metadata.financeOutput.scriptPubKey.hex, 'hex')
+        )
         txb.tx.ins[txb.ins.length - 1].script = bitcoinjs.script.compile(chunks)
       }
       paymentDone = true
       return paymentDone
     } else {
-      debug('finance output not added to transaction finace value: ' + financeValue.toNumber() + ' still needed: ' + missingbn.toNumber())
+      debug(
+        'finance output not added to transaction finace value: ' +
+          financeValue.toNumber() +
+          ' still needed: ' +
+          missingbn.toNumber()
+      )
     }
   } else {
     debug('no financeOutput was given')
   }
 
-  var hasEnoughEquity = utxos.some(function (utxo) {
+  const hasEnoughEquity = utxos.some(function (utxo) {
     utxo.value = Math.round(utxo.value)
-    if (!isInputInTx(txb.tx, utxo.txid, utxo.index) && !(utxo.assets && utxo.assets.length)) {
+    if (
+      !isInputInTx(txb.tx, utxo.txid, utxo.index) &&
+      !(utxo.assets && utxo.assets.length)
+    ) {
       debug('current amount ' + utxo.value + ' needed ' + missing)
       txb.addInput(utxo.txid, utxo.index)
       inputsValue.amount += utxo.value
       currentAmount = currentAmount.add(utxo.value)
       if (metadata.flags && metadata.flags.injectPreviousOutput) {
-        var chunks = bitcoinjs.script.decompile(new Buffer(utxo.scriptPubKey.hex, 'hex'))
-        txb.tx.ins[txb.tx.ins.length - 1].script = bitcoinjs.script.compile(chunks)
+        const chunks = bitcoinjs.script.decompile(
+          Buffer.from(utxo.scriptPubKey.hex, 'hex')
+        )
+        txb.tx.ins[txb.tx.ins.length - 1].script = bitcoinjs.script.compile(
+          chunks
+        )
       }
     }
     return currentAmount.comparedTo(missingbn) >= 0
@@ -433,20 +556,41 @@ WienAssetBuilder.prototype._insertSatoshiToTransaction = function (utxos, txb, m
   return hasEnoughEquity
 }
 
-WienAssetBuilder.prototype._tryAddingInputsForFee = function (txb, utxos, totalInputs, metadata, satoshiCost) {
-  var self = this
-  debug('tryAddingInputsForFee: current transaction value: ' + totalInputs.amount + ' projected cost: ' + satoshiCost)
+WienAssetBuilder.prototype._tryAddingInputsForFee = function (
+  txb,
+  utxos,
+  totalInputs,
+  metadata,
+  satoshiCost
+) {
+  const self = this
+  debug(
+    'tryAddingInputsForFee: current transaction value: ' +
+      totalInputs.amount +
+      ' projected cost: ' +
+      satoshiCost
+  )
   if (satoshiCost > totalInputs.amount) {
-    if (!self._insertSatoshiToTransaction(utxos, txb, (satoshiCost - totalInputs.amount), totalInputs, metadata)) {
+    if (
+      !self._insertSatoshiToTransaction(
+        utxos,
+        txb,
+        satoshiCost - totalInputs.amount,
+        totalInputs,
+        metadata
+      )
+    ) {
       debug('not enough satoshi in account for fees')
       return false
     }
-  } else { debug('No need for additional finance') }
+  } else {
+    debug('No need for additional finance')
+  }
   return true
 }
 
 WienAssetBuilder.prototype.buildSendTransaction = function (args) {
-  var self = this
+  const self = this
   if (!args.utxos) {
     throw new Error('Must have "utxos"')
   }
@@ -458,13 +602,17 @@ WienAssetBuilder.prototype.buildSendTransaction = function (args) {
     args.fee = parseInt(args.fee)
   }
 
-  var txb = new bitcoinjs.TransactionBuilder(self.network === 'testnet' ? wienchainTestnetNetwork : wienchainMainnetNetwork)
+  const txb = new bitcoinjs.TransactionBuilder(
+    self.network === 'testnet'
+      ? wienchainTestnetNetwork
+      : wienchainMainnetNetwork
+  )
 
   return self._addInputsForSendTransaction(txb, args)
 }
 
 WienAssetBuilder.prototype.buildSendNativeTransaction = function (args) {
-  var self = this
+  const self = this
   if (!args.utxos) {
     throw new Error('Must have "utxos"')
   }
@@ -477,28 +625,32 @@ WienAssetBuilder.prototype.buildSendNativeTransaction = function (args) {
     args.fee = parseInt(args.fee)
   }
 
-  var txb = new bitcoinjs.TransactionBuilder(self.network === 'testnet' ? wienchainTestnetNetwork : wienchainMainnetNetwork)
-  var financeValue = new BigNumber(0)
+  const txb = new bitcoinjs.TransactionBuilder(
+    self.network === 'testnet'
+      ? wienchainTestnetNetwork
+      : wienchainMainnetNetwork
+  )
+  let financeValue = new BigNumber(0)
   args.to.forEach(function (payment) {
     financeValue = financeValue.add(Math.round(payment.amount))
     txb.addOutput(payment.address, payment.amount)
   })
   // if (args.opreturn) {
   //   // OP RETURN
-  //   var ret = bitcoin.script.compile([
+  //   let ret = bitcoin.script.compile([
   //     bitcoin.opcodes.OP_RETURN,
   //     buffer.codeBuffer
   //   ])
 
   //   txb.addOutput(ret, 0)
   // }
-  var currentAmount = new BigNumber(0)
-  var missingbn = new BigNumber(0)
+  let currentAmount = new BigNumber(0)
+  let missingbn = new BigNumber(0)
   missingbn = missingbn.add(financeValue)
   missingbn = missingbn.add(args.fee || 100000)
-  var hasEnoughEquity = false;
-  for (var i = 0; i < args.utxos.length; i++) {
-    const utxo = args.utxos[i];
+  let hasEnoughEquity = false
+  for (let i = 0; i < args.utxos.length; i++) {
+    const utxo = args.utxos[i]
     utxo.value = Math.round(utxo.value)
     if (!(utxo.assets && utxo.assets.length)) {
       txb.addInput(utxo.txid, utxo.index)
@@ -506,34 +658,44 @@ WienAssetBuilder.prototype.buildSendNativeTransaction = function (args) {
     }
     if (currentAmount.comparedTo(missingbn) >= 0) {
       hasEnoughEquity = true
-      break;
+      break
     }
   }
-    
-  
+
   if (!hasEnoughEquity) {
-    throw new Error('Not enough satoshi to cover transaction of ' + missingbn.toString())
+    throw new Error(
+      'Not enough satoshi to cover transaction of ' + missingbn.toString()
+    )
   }
 
   // Actual Fee
-  args.fee = args.fee || ((txb.tx.ins.length * 1000) + (args.to.length * 1000) + 2000);
-  var lastOutputValue = currentAmount.minus(financeValue.add(args.fee))
-  txb.addOutput(args.financeChangeAddress ? args.financeChangeAddress : (Array.isArray(args.from) ? args.from[0] : args.from), parseInt(lastOutputValue.toString()))
+  args.fee = args.fee || txb.tx.ins.length * 1000 + args.to.length * 1000 + 2000
+  const lastOutputValue = currentAmount.minus(financeValue.add(args.fee))
+  txb.addOutput(
+    args.financeChangeAddress
+      ? args.financeChangeAddress
+      : Array.isArray(args.from)
+      ? args.from[0]
+      : args.from,
+    parseInt(lastOutputValue.toString())
+  )
 
-  return { txHex: txb.tx.toHex() };
+  return { txHex: txb.tx.toHex() }
 }
 
 WienAssetBuilder.prototype._computeCost = function (withfee, args) {
-  var self = this
-  var fee = withfee ? (args.fee || args.minfee) : 0
+  const self = this
+  let fee = withfee ? args.fee || args.minfee : 0
 
   if (args.to && args.to.length) {
     args.to.forEach(function (to) {
       fee += self.mindustvalue
     })
   }
-  
-  if (args.rules || args.metadata) { fee += self.writemultisig ? self.mindustvaluemultisig : 0 }
+
+  if (args.rules || args.metadata) {
+    fee += self.writemultisig ? self.mindustvaluemultisig : 0
+  }
 
   fee += self.mindustvalue
 
@@ -542,26 +704,39 @@ WienAssetBuilder.prototype._computeCost = function (withfee, args) {
 }
 
 WienAssetBuilder.prototype._getInputAmountNeededForTx = function (tx, fee) {
-  var self = this
-  var total = fee
+  const self = this
+  let total = fee
   tx.outs.forEach(function (output) {
     total += self._getNoneMinDustByScript(output.script, fee)
   })
   return total
 }
 
-WienAssetBuilder.prototype._getChangeAmount = function (tx, fee, totalInputValue) {
-  var allOutputValues = _.sumBy(tx.outs, function (output) { return output.value })
-  debug('getChangeAmount: all inputs: ' + totalInputValue.amount + ' all outputs: ' + allOutputValues)
-  return (totalInputValue.amount - (allOutputValues + fee))
+WienAssetBuilder.prototype._getChangeAmount = function (
+  tx,
+  fee,
+  totalInputValue
+) {
+  const allOutputValues = _.sumBy(tx.outs, function (output) {
+    return output.value
+  })
+  debug(
+    'getChangeAmount: all inputs: ' +
+      totalInputValue.amount +
+      ' all outputs: ' +
+      allOutputValues
+  )
+  return totalInputValue.amount - (allOutputValues + fee)
 }
 
 WienAssetBuilder.prototype._addInputsForSendTransaction = function (txb, args) {
-  var self = this
-  var satoshiCost = args.fee ? self._computeCost(true, args) : self._computeCost(false, args)
-  var totalInputs = { amount: 0 }
-  var reedemScripts = []
-  var coloredOutputIndexes = []
+  const self = this
+  let satoshiCost = args.fee
+    ? self._computeCost(true, args)
+    : self._computeCost(false, args)
+  const totalInputs = { amount: 0 }
+  const reedemScripts = []
+  const coloredOutputIndexes = []
 
   debug('addInputsForSendTransaction')
 
@@ -569,69 +744,117 @@ WienAssetBuilder.prototype._addInputsForSendTransaction = function (txb, args) {
     debug('got unspents for address: ' + args.from)
   } else {
     debug('got unspents from parmameter: ' + args.utxos)
-    if (args.utxos[0] && args.utxos[0].scriptPubKey && args.utxos[0].scriptPubKey.addresses && args.utxos[0].scriptPubKey.addresses[0]) {
+    if (
+      args.utxos[0] &&
+      args.utxos[0].scriptPubKey &&
+      args.utxos[0].scriptPubKey.addresses &&
+      args.utxos[0].scriptPubKey.addresses[0]
+    ) {
       args.from = args.utxos[0].scriptPubKey.addresses[0]
     }
   }
-  var assetList = {}
+  const assetList = {}
   args.to.forEach(function (to) {
     debug(to.assetId)
     if (!assetList[to.assetId]) {
-      assetList[to.assetId] = { amount: 0, addresses: [], done: false, change: 0, encodeAmount: 0, inputs: [] }
+      assetList[to.assetId] = {
+        amount: 0,
+        addresses: [],
+        done: false,
+        change: 0,
+        encodeAmount: 0,
+        inputs: [],
+      }
     }
     assetList[to.assetId].amount += to.amount
     if (to.burn) {
-      assetList[to.assetId].addresses.push({ address: 'burn', amount: to.amount })
-    } else if (!to.address && to.pubKeys && to.m) { // generate a multisig address, remember to return the redeem scripts
-      var multisig = self._generateMultisigAddress(to.pubKeys, to.m)
-      assetList[to.assetId].addresses.push({ address: multisig.address, amount: to.amount, reedemScript: multisig.reedemScript })
+      assetList[to.assetId].addresses.push({
+        address: 'burn',
+        amount: to.amount,
+      })
+    } else if (!to.address && to.pubKeys && to.m) {
+      // generate a multisig address, remember to return the redeem scripts
+      const multisig = self._generateMultisigAddress(to.pubKeys, to.m)
+      assetList[to.assetId].addresses.push({
+        address: multisig.address,
+        amount: to.amount,
+        reedemScript: multisig.reedemScript,
+      })
     } else {
-      assetList[to.assetId].addresses.push({ address: to.address, amount: to.amount })
+      assetList[to.assetId].addresses.push({
+        address: to.address,
+        amount: to.amount,
+      })
     }
   })
 
   debug('finished creating per asset list')
-  for (var asset in assetList) {
+  for (const asset in assetList) {
     debug('working on asset: ' + asset)
     debug(args.utxos)
-    var assetUtxos = args.utxos.filter(function (element, index, array) {
-      if (!element.assets) { return false }
+    const assetUtxos = args.utxos.filter(function (element, index, array) {
+      if (!element.assets) {
+        return false
+      }
       return element.assets.some(function (a) {
         debug('checking ' + a.assetId + ' and ' + asset)
-        return (a.assetId === asset)
+        return a.assetId === asset
       })
     })
     if (assetUtxos && assetUtxos.length > 0) {
       debug('have utxo list')
-      var key = asset
+      const key = asset
       assetUtxos.forEach(function (utxo) {
         if (utxo.used) {
           debug('utxo', utxo)
-          throw new Error('Output ' + utxo.txid + ':' + utxo.index + ' is already spent!')
+          throw new Error(
+            'Output ' + utxo.txid + ':' + utxo.index + ' is already spent!'
+          )
         }
       })
-      if (!findBestMatchByNeededAssets(assetUtxos, assetList, key, txb, totalInputs, args)) { throw new Error('Not enough units of asset ' + key + ' to cover transfer transaction') }
+      if (
+        !findBestMatchByNeededAssets(
+          assetUtxos,
+          assetList,
+          key,
+          txb,
+          totalInputs,
+          args
+        )
+      ) {
+        throw new Error(
+          'Not enough units of asset ' + key + ' to cover transfer transaction'
+        )
+      }
     } else {
       debug('no utxo list')
       throw new Error('No output with the requested asset: ' + asset)
     }
   }
   debug('reached encoder')
-  debug(txb.tx);
-  args.fee = args.fee || ((txb.tx.ins.length * 1000) + (args.to.length * 1000) + 2000); // 2000 for OP_DATA
+  debug(txb.tx)
+  args.fee = args.fee || txb.tx.ins.length * 1000 + args.to.length * 1000 + 2000 // 2000 for OP_DATA
   satoshiCost = self._computeCost(true, args)
-  var encoder = cc.newTransaction(0x5741, TA_TX_VERSION)
-  if (!self._tryAddingInputsForFee(txb, args.utxos, totalInputs, args, satoshiCost)) {
+  const encoder = cc.newTransaction(0x5741, TA_TX_VERSION)
+  if (
+    !self._tryAddingInputsForFee(
+      txb,
+      args.utxos,
+      totalInputs,
+      args,
+      satoshiCost
+    )
+  ) {
     throw new errors.NotEnoughFundsError({
       type: 'sending',
       fee: args.fee,
       totalCost: satoshiCost,
-      missing: satoshiCost - totalInputs.amount
+      missing: satoshiCost - totalInputs.amount,
     })
   }
 
   for (asset in assetList) {
-    var currentAsset = assetList[asset]
+    const currentAsset = assetList[asset]
     debug('encoding asset ' + asset)
     if (!currentAsset.done) {
       debug('current asset state is bad ' + asset)
@@ -639,31 +862,64 @@ WienAssetBuilder.prototype._addInputsForSendTransaction = function (txb, args) {
     }
 
     debug(currentAsset.addresses)
-    var uniqAssets = _.uniqBy(currentAsset.addresses, function (item) { return item.address })
+    const uniqAssets = _.uniqBy(currentAsset.addresses, function (item) {
+      return item.address
+    })
     debug('uniqAssets = ', uniqAssets)
     uniqAssets.forEach(function (address) {
-      debug('adding output ' + (txb.tx.outs ? txb.tx.outs.length : 0) + ' for address: ' + address.address + ' with satoshi value ' + self.mindustvalue + ' asset value: ' + address.amount)
-      var addressAmountLeft = address.amount
-      debug('currentAsset = ', currentAsset, ', currentAsset.inputs.length = ', currentAsset.inputs.length)
+      debug(
+        'adding output ' +
+          (txb.tx.outs ? txb.tx.outs.length : 0) +
+          ' for address: ' +
+          address.address +
+          ' with satoshi value ' +
+          self.mindustvalue +
+          ' asset value: ' +
+          address.amount
+      )
+      let addressAmountLeft = address.amount
+      debug(
+        'currentAsset = ',
+        currentAsset,
+        ', currentAsset.inputs.length = ',
+        currentAsset.inputs.length
+      )
       currentAsset.inputs.some(function (input) {
-        if (!input.amount) { return false }
+        if (!input.amount) {
+          return false
+        }
         if (addressAmountLeft - input.amount > 0) {
-          debug('mapping to input ' + input.index + ' with amount ' + input.amount)
+          debug(
+            'mapping to input ' + input.index + ' with amount ' + input.amount
+          )
           if (address.address === 'burn') {
             encoder.addBurn(input.index, input.amount)
           } else {
-            encoder.addPayment(input.index, input.amount, (txb.tx.outs ? txb.tx.outs.length : 0))
+            encoder.addPayment(
+              input.index,
+              input.amount,
+              txb.tx.outs ? txb.tx.outs.length : 0
+            )
           }
           addressAmountLeft -= input.amount
           debug('left to map from next input ' + addressAmountLeft)
           input.amount = 0
           return false
         } else {
-          debug('mapping to input ' + input.index + ' with amount ' + addressAmountLeft)
+          debug(
+            'mapping to input ' +
+              input.index +
+              ' with amount ' +
+              addressAmountLeft
+          )
           if (address.address === 'burn') {
             encoder.addBurn(input.index, addressAmountLeft)
           } else {
-            encoder.addPayment(input.index, addressAmountLeft, (txb.tx.outs ? txb.tx.outs.length : 0))
+            encoder.addPayment(
+              input.index,
+              addressAmountLeft,
+              txb.tx.outs ? txb.tx.outs.length : 0
+            )
           }
           input.amount -= addressAmountLeft
           addressAmountLeft = 0
@@ -675,7 +931,11 @@ WienAssetBuilder.prototype._addInputsForSendTransaction = function (txb, args) {
         txb.addOutput(address.address, self.mindustvalue)
       }
       if (address.reedemScript) {
-        reedemScripts.push({ index: txb.tx.outs.length - 1, reedemScript: address.reedemScript, address: address.address })
+        reedemScripts.push({
+          index: txb.tx.outs.length - 1,
+          reedemScript: address.reedemScript,
+          address: address.address,
+        })
       }
 
       debug(txb.tx)
@@ -684,58 +944,77 @@ WienAssetBuilder.prototype._addInputsForSendTransaction = function (txb, args) {
     debug('done adding colored outputs')
   }
   debug('before using encoder')
-    // add metadata if we have any
+  // add metadata if we have any
   if (args.ipfsHash && self.writemultisig) {
     encoder.setHash(args.ipfsHash)
   }
-  var buffer = encoder.encode()
+  let buffer = encoder.encode()
   if (buffer.leftover && buffer.leftover.length > 0) {
     encoder.shiftOutputs()
-    reedemScripts.forEach(function (item) { item.index += 1 })
+    reedemScripts.forEach(function (item) {
+      item.index += 1
+    })
     buffer = encoder.encode()
     if (buffer.leftover.length === 1) {
-      self._addHashesOutput(txb.tx, args.pubKeyReturnMultisigDust, buffer.leftover[0])
+      self._addHashesOutput(
+        txb.tx,
+        args.pubKeyReturnMultisigDust,
+        buffer.leftover[0]
+      )
     } else {
       throw new errors.CCTransactionConstructionError()
     }
   }
 
-   // add array of colored ouput indexes
+  // add array of colored ouput indexes
   encoder.payments.forEach(function (payment) {
-    if (typeof payment.output !== 'undefined') coloredOutputIndexes.push(payment.output)
+    if (typeof payment.output !== 'undefined')
+      coloredOutputIndexes.push(payment.output)
   })
 
   debug('encoding done')
-  var ret = bitcoinjs.script.compile([
+  const ret = bitcoinjs.script.compile([
     bitcoinjs.opcodes.OP_RETURN,
-    buffer.codeBuffer
+    buffer.codeBuffer,
   ])
 
   txb.addOutput(ret, 0)
-  var lastOutputValue = self._getChangeAmount(txb.tx, args.fee, totalInputs)
-  var coloredChange = _.keys(assetList).some(function (assetId) {
+  let lastOutputValue = self._getChangeAmount(txb.tx, args.fee, totalInputs)
+  const coloredChange = _.keys(assetList).some(function (assetId) {
     return assetList[assetId].change > 0
   })
 
-  var changeAddress = args.financeChangeAddress || (Array.isArray(args.from) ? args.from[0] : args.from)
+  const changeAddress =
+    args.financeChangeAddress ||
+    (Array.isArray(args.from) ? args.from[0] : args.from)
 
-  var numOfChanges = coloredChange ? 2 : 1
+  const numOfChanges = coloredChange ? 2 : 1
 
   if (lastOutputValue < numOfChanges * self.mindustvalue) {
     debug('trying to add additionl inputs to cover transaction')
-    satoshiCost = self._getInputAmountNeededForTx(txb.tx, args.fee) + numOfChanges * self.mindustvalue
-    if (!self._tryAddingInputsForFee(txb, args.utxos, totalInputs, args, satoshiCost)) {
+    satoshiCost =
+      self._getInputAmountNeededForTx(txb.tx, args.fee) +
+      numOfChanges * self.mindustvalue
+    if (
+      !self._tryAddingInputsForFee(
+        txb,
+        args.utxos,
+        totalInputs,
+        args,
+        satoshiCost
+      )
+    ) {
       throw new errors.NotEnoughFundsError({
         type: 'transfer',
         fee: args.fee,
         totalCost: satoshiCost,
-        missing: self.mindustvalue - lastOutputValue
+        missing: self.mindustvalue - lastOutputValue,
       })
     }
     lastOutputValue = self._getChangeAmount(txb.tx, args.fee, totalInputs)
   }
 
-  debug('numOfChanges', numOfChanges);
+  debug('numOfChanges', numOfChanges)
   if (numOfChanges === 2) {
     txb.addOutput(changeAddress, lastOutputValue - self.mindustvalue)
     lastOutputValue = self.mindustvalue
@@ -743,17 +1022,33 @@ WienAssetBuilder.prototype._addInputsForSendTransaction = function (txb, args) {
   if (coloredChange) {
     coloredOutputIndexes.push(txb.tx.outs.length)
   }
-  txb.addOutput(coloredChange ? args.coloredChangeAddress : args.financeChangeAddress ? args.financeChangeAddress : (Array.isArray(args.from) ? args.from[0] : args.from), lastOutputValue)
+  txb.addOutput(
+    coloredChange
+      ? args.coloredChangeAddress
+      : args.financeChangeAddress
+      ? args.financeChangeAddress
+      : Array.isArray(args.from)
+      ? args.from[0]
+      : args.from,
+    lastOutputValue
+  )
   debug('success')
-  return { txHex: txb.tx.toHex(), metadata: args.ipfsHash, multisigOutputs: reedemScripts, coloredOutputIndexes: _.uniqBy(coloredOutputIndexes) }
+  return {
+    txHex: txb.tx.toHex(),
+    metadata: args.ipfsHash,
+    multisigOutputs: reedemScripts,
+    coloredOutputIndexes: _.uniqBy(coloredOutputIndexes),
+  }
 }
 
 WienAssetBuilder.prototype.buildBurnTransaction = function (args) {
-  var self = this
+  const self = this
   args = args || {}
-  var to = args.transfer || []
-  var burn = args.burn || []
-  burn.forEach(function (burnItem) { burnItem.burn = true })
+  const to = args.transfer || []
+  const burn = args.burn || []
+  burn.forEach(function (burnItem) {
+    burnItem.burn = true
+  })
   to.push.apply(to, burn)
   delete args.transfer
   args.to = to

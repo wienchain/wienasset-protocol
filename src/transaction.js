@@ -1,28 +1,32 @@
-var PROTOCOL = 0x5741
-var VERSION = 0x03
-var MAXBYTESIZE = 400
-var OP_CODES = {
-  'issuance': {
-    'start': 0x00,
-    'end': 0x0f,
-    'encoder': require('./issuanceEncoder')
+const PROTOCOL = 0x5741
+const VERSION = 0x03
+const MAXBYTESIZE = 400
+const OP_CODES = {
+  issuance: {
+    start: 0x00,
+    end: 0x0f,
+    encoder: require('./issuanceEncoder'),
   },
-  'transfer': {
-    'start': 0x10,
-    'end': 0x1f,
-    'encoder': require('./transferEncoder')
+  transfer: {
+    start: 0x10,
+    end: 0x1f,
+    encoder: require('./transferEncoder'),
   },
-  'burn': {
-    'start': 0x20,
-    'end': 0x2f,
-    'encoder': require('./burnPaymentEncoder')
-  }
+  burn: {
+    start: 0x20,
+    end: 0x2f,
+    encoder: require('./burnPaymentEncoder'),
+  },
 }
 
-var encodingLookup = {}
+const encodingLookup = {}
 
-for (var transactionType in OP_CODES) {
-  for (var j = OP_CODES[transactionType].start; j <= OP_CODES[transactionType].end; j++) {
+for (const transactionType in OP_CODES) {
+  for (
+    let j = OP_CODES[transactionType].start;
+    j <= OP_CODES[transactionType].end;
+    j++
+  ) {
     encodingLookup[j] = {}
     encodingLookup[j].encode = OP_CODES[transactionType].encoder.encode
     encodingLookup[j].decode = OP_CODES[transactionType].encoder.decode
@@ -30,13 +34,13 @@ for (var transactionType in OP_CODES) {
   }
 }
 
-var paymentsInputToSkip = function (payments) {
-  var result = JSON.parse(JSON.stringify(payments))
+const paymentsInputToSkip = function (payments) {
+  const result = JSON.parse(JSON.stringify(payments))
   result.sort(function (a, b) {
     return a.input - b.input
   })
-  for (var i = 0; i < result.length; i++) {
-    var skip = false
+  for (let i = 0; i < result.length; i++) {
+    let skip = false
     if (result[i + 1] && result[i + 1].input > result[i].input) {
       skip = true
     }
@@ -46,11 +50,13 @@ var paymentsInputToSkip = function (payments) {
   return result
 }
 
-var paymentsSkipToInput = function (payments) {
-  var paymentsDecoded = []
-  var input = 0
-  for (var i = 0; i < payments.length; i++) {
-    var paymentDecoded = payments[i].burn ? {burn: true} : {range: payments[i].range, output: payments[i].output}
+const paymentsSkipToInput = function (payments) {
+  const paymentsDecoded = []
+  let input = 0
+  for (let i = 0; i < payments.length; i++) {
+    const paymentDecoded = payments[i].burn
+      ? { burn: true }
+      : { range: payments[i].range, output: payments[i].output }
     paymentDecoded.input = input
     paymentDecoded.percent = payments[i].percent
     paymentDecoded.amount = payments[i].amount
@@ -60,7 +66,7 @@ var paymentsSkipToInput = function (payments) {
   return paymentsDecoded
 }
 
-function Transaction (data) {
+function Transaction(data) {
   data = data || {}
   this.type = data.type || 'transfer'
   this.noRules = data.noRules || true
@@ -77,30 +83,47 @@ function Transaction (data) {
 
 Transaction.fromHex = function (op_return) {
   if (!Buffer.isBuffer(op_return)) {
-    op_return = new Buffer(op_return, 'hex')
+    op_return = Buffer.from(op_return, 'hex')
   }
-  var decoder = encodingLookup[op_return[3]]
-  var rawData = decoder.decode(op_return)
+  const decoder = encodingLookup[op_return[3]]
+  const rawData = decoder.decode(op_return)
   rawData.type = decoder.type
   rawData.payments = paymentsSkipToInput(rawData.payments)
   return new Transaction(rawData)
 }
 
 Transaction.newTransaction = function (protocol, version) {
-  return new Transaction({protocol: protocol, version: version})
+  return new Transaction({ protocol: protocol, version: version })
 }
 
-Transaction.prototype.addPayment = function (input, amount, output, range, percent) {
+Transaction.prototype.addPayment = function (
+  input,
+  amount,
+  output,
+  range,
+  percent
+) {
   range = range || false
   percent = percent || false
-  this.payments.push({input: input, amount: amount, output: output, range: range, percent: percent})
+  this.payments.push({
+    input: input,
+    amount: amount,
+    output: output,
+    range: range,
+    percent: percent,
+  })
 }
 
 Transaction.prototype.addBurn = function (input, amount, percent) {
   if (this.type === 'issuance') {
-    throw new Error('Can\'t add burn payment to an issuance transaction')
+    throw new Error("Can't add burn payment to an issuance transaction")
   }
-  this.payments.push({input: input, amount: amount, percent: percent, burn: true})
+  this.payments.push({
+    input: input,
+    amount: amount,
+    percent: percent,
+    burn: true,
+  })
   this.type = 'burn'
 }
 
@@ -137,21 +160,21 @@ Transaction.prototype.shiftOutputs = function (shiftAmount) {
 }
 
 Transaction.prototype.setHash = function (ipfsHash) {
-  if (!ipfsHash) throw new Error('Can\'t set hashes without the ipfs hash')
-  if (!Buffer.isBuffer(ipfsHash)) ipfsHash = new Buffer(ipfsHash, 'hex')
+  if (!ipfsHash) throw new Error("Can't set hashes without the ipfs hash")
+  if (!Buffer.isBuffer(ipfsHash)) ipfsHash = Buffer.from(ipfsHash, 'hex')
   this.ipfsHash = ipfsHash
 }
 
 Transaction.prototype.encode = function () {
-  var encoder = OP_CODES[this.type].encoder
+  const encoder = OP_CODES[this.type].encoder
   this.payments = paymentsInputToSkip(this.payments)
-  var result = encoder.encode(this, MAXBYTESIZE)
+  const result = encoder.encode(this, MAXBYTESIZE)
   this.payments = paymentsSkipToInput(this.payments)
   return result
 }
 
 Transaction.prototype.toJson = function () {
-  var data = {}
+  const data = {}
   data.payments = this.payments
   data.protocol = this.protocol
   data.version = this.version

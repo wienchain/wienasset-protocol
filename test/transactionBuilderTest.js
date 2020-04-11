@@ -1,32 +1,34 @@
 /* eslint-env mocha */
-var WienAssetBuilder = require('../transactionBuilder')
-var ccb = new WienAssetBuilder({network: 'testnet'})
-var assert = require('assert')
-var clone = require('clone')
-var bitcoinjs = require('bitcoinjs-lib')
-var Transaction = bitcoinjs.Transaction
-var script = bitcoinjs.script
-var CC = require('../transaction')
-var _ = require('lodash')
+const WienAssetBuilder = require('../index').TransactionBuilder
+const ccb = new WienAssetBuilder({ network: 'testnet' })
+const assert = require('assert')
+const clone = require('clone')
+const bitcoinjs = require('bitcoinjs-lib')
+const Transaction = bitcoinjs.Transaction
+const script = bitcoinjs.script
+const CC = require('../index').Transaction
+const _ = require('lodash')
 
-var issueArgs = {
-  utxos: [{
-    txid: 'b757c9f200c8ccd937ad493b2d499364640c0e2bfc62f99ef9aec635b7ff3474',
-    index: 1,
-    value: 598595600,
-    scriptPubKey: {
-      addresses: ['mrS8spZSamejRTW2HG9xshY4pZqhB1BfLY'],
-      hex: '76a91477c0232b1c5c77f90754c9a400b825547cc30ebd88ac'
-    }
-  }],
+const issueArgs = {
+  utxos: [
+    {
+      txid: 'b757c9f200c8ccd937ad493b2d499364640c0e2bfc62f99ef9aec635b7ff3474',
+      index: 1,
+      value: 598595600,
+      scriptPubKey: {
+        addresses: ['mrS8spZSamejRTW2HG9xshY4pZqhB1BfLY'],
+        hex: '76a91477c0232b1c5c77f90754c9a400b825547cc30ebd88ac',
+      },
+    },
+  ],
   issueAddress: 'mrS8spZSamejRTW2HG9xshY4pZqhB1BfLY',
   amount: 3600,
-  fee: 5000
+  fee: 5000,
 }
 
 describe('builder.buildIssueTransaction(args)', function () {
   it('throws: Must have "utxos"', function (done) {
-    var args = clone(issueArgs)
+    const args = clone(issueArgs)
     delete args.utxos
     assert.throws(function () {
       ccb.buildIssueTransaction(args)
@@ -35,7 +37,7 @@ describe('builder.buildIssueTransaction(args)', function () {
   })
 
   it('throws: Must have "fee"', function (done) {
-    var args = clone(issueArgs)
+    const args = clone(issueArgs)
     delete args.fee
     assert.throws(function () {
       ccb.buildIssueTransaction(args)
@@ -44,7 +46,7 @@ describe('builder.buildIssueTransaction(args)', function () {
   })
 
   it('throws: Must have "issueAddress"', function (done) {
-    var args = clone(issueArgs)
+    const args = clone(issueArgs)
     delete args.issueAddress
     assert.throws(function () {
       ccb.buildIssueTransaction(args)
@@ -53,7 +55,7 @@ describe('builder.buildIssueTransaction(args)', function () {
   })
 
   it('throws: Must have "amount"', function (done) {
-    var args = clone(issueArgs)
+    const args = clone(issueArgs)
     delete args.amount
     assert.throws(function () {
       ccb.buildIssueTransaction(args)
@@ -62,18 +64,20 @@ describe('builder.buildIssueTransaction(args)', function () {
   })
 
   it('returns valid response with default values', function (done) {
-    var result = ccb.buildIssueTransaction(issueArgs)
+    const result = ccb.buildIssueTransaction(issueArgs)
     assert(result.txHex)
-    var tx = Transaction.fromHex(result.txHex)
+    const tx = Transaction.fromHex(result.txHex)
     assert.equal(tx.ins.length, 1)
     assert.equal(tx.outs.length, 3) // OP_RETURN + 2 changes
     assert(result.assetId)
     assert.deepEqual(result.coloredOutputIndexes, [2])
-    var sumValueInputs = issueArgs.utxos[0].value
-    var sumValueOutputs = _.sumBy(tx.outs, function (output) { return output.value })
+    const sumValueInputs = issueArgs.utxos[0].value
+    const sumValueOutputs = _.sumBy(tx.outs, function (output) {
+      return output.value
+    })
     assert.equal(sumValueInputs - sumValueOutputs, issueArgs.fee)
-    var opReturnScriptBuffer = script.decompile(tx.outs[0].script)[1]
-    var ccTransaction = CC.fromHex(opReturnScriptBuffer)
+    const opReturnScriptBuffer = script.decompile(tx.outs[0].script)[1]
+    const ccTransaction = CC.fromHex(opReturnScriptBuffer)
     assert.equal(ccTransaction.type, 'issuance')
     assert.equal(ccTransaction.amount, issueArgs.amount)
     // default values
@@ -84,22 +88,25 @@ describe('builder.buildIssueTransaction(args)', function () {
   })
 
   it('flags.injectPreviousOutput === true: return previous output hex in inputs', function (done) {
-    var args = clone(issueArgs)
-    args.flags = {injectPreviousOutput: true}
-    var result = ccb.buildIssueTransaction(args)
+    const args = clone(issueArgs)
+    args.flags = { injectPreviousOutput: true }
+    const result = ccb.buildIssueTransaction(args)
     assert(result.txHex)
-    var tx = Transaction.fromHex(result.txHex)
+    const tx = Transaction.fromHex(result.txHex)
     assert.equal(tx.ins.length, 1)
-    assert.equal(tx.ins[0].script.toString('hex'), args.utxos[0].scriptPubKey.hex)
+    assert.equal(
+      tx.ins[0].script.toString('hex'),
+      args.utxos[0].scriptPubKey.hex
+    )
     done()
   })
 
   it('should split change', function (done) {
-    var args = clone(issueArgs)
+    const args = clone(issueArgs)
     args.financeChangeAddress = false
-    var result = ccb.buildIssueTransaction(args)
+    const result = ccb.buildIssueTransaction(args)
     assert(result.txHex)
-    var tx = Transaction.fromHex(result.txHex)
+    const tx = Transaction.fromHex(result.txHex)
     assert.equal(tx.ins.length, 1)
     assert.equal(tx.outs.length, 2) // OP_RETURN + 1 change
     assert.deepEqual(result.coloredOutputIndexes, [1])
@@ -107,33 +114,35 @@ describe('builder.buildIssueTransaction(args)', function () {
   })
 
   it('should encode torrentHash and sha2', function (done) {
-    var args = clone(issueArgs)
-    args.sha2 = '59040d5c3bc91b5e28e014541363c0f64d9a2429541fe6cf1c568c63c85fbb20'
+    const args = clone(issueArgs)
+    args.sha2 =
+      '59040d5c3bc91b5e28e014541363c0f64d9a2429541fe6cf1c568c63c85fbb20'
     args.torrentHash = '02fcc3d843eaba4d278ed107c0c2b56a146f66b8'
-    var result = ccb.buildIssueTransaction(args)
-    var tx = Transaction.fromHex(result.txHex)
-    var opReturnScriptBuffer = script.decompile(tx.outs[0].script)[1]
-    var ccTransaction = CC.fromHex(opReturnScriptBuffer)
+    const result = ccb.buildIssueTransaction(args)
+    const tx = Transaction.fromHex(result.txHex)
+    const opReturnScriptBuffer = script.decompile(tx.outs[0].script)[1]
+    const ccTransaction = CC.fromHex(opReturnScriptBuffer)
     assert.equal(ccTransaction.sha2.toString('hex'), args.sha2)
     assert.equal(ccTransaction.torrentHash.toString('hex'), args.torrentHash)
     done()
   })
 
   it('should encode torrentHash and sha2', function (done) {
-    var args = clone(issueArgs)
-    args.sha2 = '59040d5c3bc91b5e28e014541363c0f64d9a2429541fe6cf1c568c63c85fbb20'
+    const args = clone(issueArgs)
+    args.sha2 =
+      '59040d5c3bc91b5e28e014541363c0f64d9a2429541fe6cf1c568c63c85fbb20'
     args.torrentHash = '02fcc3d843eaba4d278ed107c0c2b56a146f66b8'
-    var result = ccb.buildIssueTransaction(args)
-    var tx = Transaction.fromHex(result.txHex)
-    var opReturnScriptBuffer = script.decompile(tx.outs[0].script)[1]
-    var ccTransaction = CC.fromHex(opReturnScriptBuffer)
+    const result = ccb.buildIssueTransaction(args)
+    const tx = Transaction.fromHex(result.txHex)
+    const opReturnScriptBuffer = script.decompile(tx.outs[0].script)[1]
+    const ccTransaction = CC.fromHex(opReturnScriptBuffer)
     assert.equal(ccTransaction.sha2.toString('hex'), args.sha2)
     assert.equal(ccTransaction.torrentHash.toString('hex'), args.torrentHash)
     done()
   })
 })
 
-var sendArgs = {
+const sendArgs = {
   utxos: [
     {
       txid: '9ad3154af0fba1c7ff399935f55680810faaf1e382f419fe1247e43edb12941d',
@@ -143,31 +152,39 @@ var sendArgs = {
       blockheight: 577969,
       blocktime: 1444861908000,
       scriptPubKey: {
-        asm: 'OP_DUP OP_HASH160 0e8fffc70907a025e65f0bdbc5ec6bb2d326d3a7 OP_EQUALVERIFY OP_CHECKSIG',
+        asm:
+          'OP_DUP OP_HASH160 0e8fffc70907a025e65f0bdbc5ec6bb2d326d3a7 OP_EQUALVERIFY OP_CHECKSIG',
         hex: '76a9140e8fffc70907a025e65f0bdbc5ec6bb2d326d3a788ac',
         reqSigs: 1,
         type: 'pubkeyhash',
-        addresses: ['mgqxFyV13aG2HQpnQ2bLKTUwm8wTPtssQ5']
+        addresses: ['mgqxFyV13aG2HQpnQ2bLKTUwm8wTPtssQ5'],
       },
       assets: [
         {
           assetId: 'Ua4XPaYTew2DiFNmLT9YDAnvRGeYnsiY1UwV9j',
           amount: 500,
-          issueTxid: '3b598a4048557ab507952ee5705040ab1a184e54ed70f31e0e20b0be7549cd09',
+          issueTxid:
+            '3b598a4048557ab507952ee5705040ab1a184e54ed70f31e0e20b0be7549cd09',
           divisibility: 2,
           lockStatus: false,
-          aggregationPolicy: 'aggregatable'
-        }
-      ]
-    }
+          aggregationPolicy: 'aggregatable',
+        },
+      ],
+    },
   ],
-  to: [{ address: 'mrS8spZSamejRTW2HG9xshY4pZqhB1BfLY', amount: 20, assetId: 'Ua4XPaYTew2DiFNmLT9YDAnvRGeYnsiY1UwV9j' }],
-  fee: 5000
+  to: [
+    {
+      address: 'mrS8spZSamejRTW2HG9xshY4pZqhB1BfLY',
+      amount: 20,
+      assetId: 'Ua4XPaYTew2DiFNmLT9YDAnvRGeYnsiY1UwV9j',
+    },
+  ],
+  fee: 5000,
 }
 
 describe('builder.buildSendTransaction(args)', function () {
   it('throws: Must have "utxos"', function (done) {
-    var args = clone(sendArgs)
+    const args = clone(sendArgs)
     delete args.utxos
     assert.throws(function () {
       ccb.buildSendTransaction(args)
@@ -176,7 +193,7 @@ describe('builder.buildSendTransaction(args)', function () {
   })
 
   it('throws: Must have "to"', function (done) {
-    var args = clone(sendArgs)
+    const args = clone(sendArgs)
     delete args.to
     assert.throws(function () {
       ccb.buildSendTransaction(args)
@@ -185,7 +202,7 @@ describe('builder.buildSendTransaction(args)', function () {
   })
 
   it('throws: Must have "fee"', function (done) {
-    var args = clone(sendArgs)
+    const args = clone(sendArgs)
     delete args.fee
     assert.throws(function () {
       ccb.buildSendTransaction(args)
@@ -194,17 +211,19 @@ describe('builder.buildSendTransaction(args)', function () {
   })
 
   it('returns valid response with default values', function (done) {
-    var result = ccb.buildSendTransaction(sendArgs)
+    const result = ccb.buildSendTransaction(sendArgs)
     assert(result.txHex)
-    var tx = Transaction.fromHex(result.txHex)
+    const tx = Transaction.fromHex(result.txHex)
     assert.equal(tx.ins.length, 1)
     assert.equal(tx.outs.length, 4) // transfer + OP_RETURN + 2 changes
     assert.deepEqual(result.coloredOutputIndexes, [0, 3])
-    var sumValueInputs = sendArgs.utxos[0].value
-    var sumValueOutputs = _.sumBy(tx.outs, function (output) { return output.value })
+    const sumValueInputs = sendArgs.utxos[0].value
+    const sumValueOutputs = _.sumBy(tx.outs, function (output) {
+      return output.value
+    })
     assert.equal(sumValueInputs - sumValueOutputs, sendArgs.fee)
-    var opReturnScriptBuffer = script.decompile(tx.outs[1].script)[1]
-    var ccTransaction = CC.fromHex(opReturnScriptBuffer)
+    const opReturnScriptBuffer = script.decompile(tx.outs[1].script)[1]
+    const ccTransaction = CC.fromHex(opReturnScriptBuffer)
     assert.equal(ccTransaction.type, 'transfer')
     assert.equal(ccTransaction.payments[0].range, false)
     assert.equal(ccTransaction.payments[0].output, 0)
@@ -215,7 +234,7 @@ describe('builder.buildSendTransaction(args)', function () {
   })
 
   it('returns valid response with default values', function (done) {
-    var addresses = [
+    const addresses = [
       'mtr98kany9G1XYNU74pRnfBQmaCg2FZLmc',
       'mtrD2mBMp93bc8SmMa9WK6tteUCtYEuQQz',
       'mtr98kany9G1XYNU74pRnfBQmaCg2FZLmc',
@@ -249,55 +268,66 @@ describe('builder.buildSendTransaction(args)', function () {
       'n2gmBqufUfkcfPF1iKkRM41gaFZLHhmCjL',
       'n27rLEmKU4AbVKntw3mkyQzjGSvXrdpAqc',
       'n1nB1jCx9ABDPvsdbw7AptyZK1WP55xY3X',
-      'mzj9s6mgvCRhzmgVQk27K1L5tNhU2nkA3A'
+      'mzj9s6mgvCRhzmgVQk27K1L5tNhU2nkA3A',
     ]
 
-    var args = clone(sendArgs)
-    for (var address of addresses) {
-      args.to.push({ address: address, amount: 1, assetId: 'Ua4XPaYTew2DiFNmLT9YDAnvRGeYnsiY1UwV9j' })
+    const args = clone(sendArgs)
+    for (const address of addresses) {
+      args.to.push({
+        address: address,
+        amount: 1,
+        assetId: 'Ua4XPaYTew2DiFNmLT9YDAnvRGeYnsiY1UwV9j',
+      })
     }
-    args.sha2 = '59040d5c3bc91b5e28e014541363c0f64d9a2429541fe6cf1c568c63c85fbb20'
+    args.sha2 =
+      '59040d5c3bc91b5e28e014541363c0f64d9a2429541fe6cf1c568c63c85fbb20'
     args.torrentHash = '02fcc3d843eaba4d278ed107c0c2b56a146f66b8'
-    var result = ccb.buildSendTransaction(args)
+    const result = ccb.buildSendTransaction(args)
     assert(result.txHex)
-    var tx = Transaction.fromHex(result.txHex)
-    var opReturnScriptBuffer = script.decompile(tx.outs[tx.outs.length - 3].script)[1]
-    var ccTransaction = CC.fromHex(opReturnScriptBuffer)
+    const tx = Transaction.fromHex(result.txHex)
+    const opReturnScriptBuffer = script.decompile(
+      tx.outs[tx.outs.length - 3].script
+    )[1]
+    const ccTransaction = CC.fromHex(opReturnScriptBuffer)
     assert.equal(ccTransaction.multiSig[0].hashType, 'sha2')
     assert.equal(ccTransaction.multiSig[1].hashType, 'torrentHash')
     done()
   })
 
   it('should encode torrentHash and sha2', function (done) {
-    var args = clone(sendArgs)
-    args.sha2 = '59040d5c3bc91b5e28e014541363c0f64d9a2429541fe6cf1c568c63c85fbb20'
+    const args = clone(sendArgs)
+    args.sha2 =
+      '59040d5c3bc91b5e28e014541363c0f64d9a2429541fe6cf1c568c63c85fbb20'
     args.torrentHash = '02fcc3d843eaba4d278ed107c0c2b56a146f66b8'
-    var result = ccb.buildSendTransaction(args)
-    var tx = Transaction.fromHex(result.txHex)
-    var opReturnScriptBuffer = script.decompile(tx.outs[1].script)[1]
-    var ccTransaction = CC.fromHex(opReturnScriptBuffer)
+    const result = ccb.buildSendTransaction(args)
+    const tx = Transaction.fromHex(result.txHex)
+    const opReturnScriptBuffer = script.decompile(tx.outs[1].script)[1]
+    const ccTransaction = CC.fromHex(opReturnScriptBuffer)
     assert.equal(ccTransaction.sha2.toString('hex'), args.sha2)
     assert.equal(ccTransaction.torrentHash.toString('hex'), args.torrentHash)
     done()
   })
 
   it('flags.injectPreviousOutput === true: return previous output hex in inputs', function (done) {
-    var args = clone(sendArgs)
-    args.flags = {injectPreviousOutput: true}
-    var result = ccb.buildSendTransaction(args)
+    const args = clone(sendArgs)
+    args.flags = { injectPreviousOutput: true }
+    const result = ccb.buildSendTransaction(args)
     assert(result.txHex)
-    var tx = Transaction.fromHex(result.txHex)
+    const tx = Transaction.fromHex(result.txHex)
     assert.equal(tx.ins.length, 1)
-    assert.equal(tx.ins[0].script.toString('hex'), args.utxos[0].scriptPubKey.hex)
+    assert.equal(
+      tx.ins[0].script.toString('hex'),
+      args.utxos[0].scriptPubKey.hex
+    )
     done()
   })
 
   it('should not split change', function (done) {
-    var args = clone(sendArgs)
+    const args = clone(sendArgs)
     args.financeChangeAddress = false
-    var result = ccb.buildSendTransaction(args)
+    const result = ccb.buildSendTransaction(args)
     assert(result.txHex)
-    var tx = Transaction.fromHex(result.txHex)
+    const tx = Transaction.fromHex(result.txHex)
     assert.equal(tx.ins.length, 1)
     assert.equal(tx.outs.length, 3) // transfer + OP_RETURN + 1 change
     assert.deepEqual(result.coloredOutputIndexes, [0, 2])
@@ -305,7 +335,7 @@ describe('builder.buildSendTransaction(args)', function () {
   })
 })
 
-var burnArgs = {
+const burnArgs = {
   utxos: [
     {
       txid: '9ad3154af0fba1c7ff399935f55680810faaf1e382f419fe1247e43edb12941d',
@@ -315,41 +345,45 @@ var burnArgs = {
       blockheight: 577969,
       blocktime: 1444861908000,
       scriptPubKey: {
-        asm: 'OP_DUP OP_HASH160 0e8fffc70907a025e65f0bdbc5ec6bb2d326d3a7 OP_EQUALVERIFY OP_CHECKSIG',
+        asm:
+          'OP_DUP OP_HASH160 0e8fffc70907a025e65f0bdbc5ec6bb2d326d3a7 OP_EQUALVERIFY OP_CHECKSIG',
         hex: '76a9140e8fffc70907a025e65f0bdbc5ec6bb2d326d3a788ac',
         reqSigs: 1,
         type: 'pubkeyhash',
-        addresses: ['mgqxFyV13aG2HQpnQ2bLKTUwm8wTPtssQ5']
+        addresses: ['mgqxFyV13aG2HQpnQ2bLKTUwm8wTPtssQ5'],
       },
       assets: [
         {
           assetId: 'Ua4XPaYTew2DiFNmLT9YDAnvRGeYnsiY1UwV9j',
           amount: 50,
-          issueTxid: '3b598a4048557ab507952ee5705040ab1a184e54ed70f31e0e20b0be7549cd09',
+          issueTxid:
+            '3b598a4048557ab507952ee5705040ab1a184e54ed70f31e0e20b0be7549cd09',
           divisibility: 2,
           lockStatus: false,
-          aggregationPolicy: 'aggregatable'
-        }
-      ]
-    }
+          aggregationPolicy: 'aggregatable',
+        },
+      ],
+    },
   ],
   burn: [{ amount: 20, assetId: 'Ua4XPaYTew2DiFNmLT9YDAnvRGeYnsiY1UwV9j' }],
-  fee: 5000
+  fee: 5000,
 }
 
 describe('builder.buildBurnTransaction(args)', function () {
   it('returns valid response with default values', function (done) {
-    var result = ccb.buildBurnTransaction(burnArgs)
+    const result = ccb.buildBurnTransaction(burnArgs)
     assert(result.txHex)
-    var tx = Transaction.fromHex(result.txHex)
+    const tx = Transaction.fromHex(result.txHex)
     assert.equal(tx.ins.length, 1)
     assert.equal(tx.outs.length, 3) // OP_RETURN + 2 changes
     assert.deepEqual(result.coloredOutputIndexes, [2])
-    var sumValueInputs = sendArgs.utxos[0].value
-    var sumValueOutputs = _.sumBy(tx.outs, function (output) { return output.value })
+    const sumValueInputs = sendArgs.utxos[0].value
+    const sumValueOutputs = _.sumBy(tx.outs, function (output) {
+      return output.value
+    })
     assert.equal(sumValueInputs - sumValueOutputs, burnArgs.fee)
-    var opReturnScriptBuffer = script.decompile(tx.outs[0].script)[1]
-    var ccTransaction = CC.fromHex(opReturnScriptBuffer)
+    const opReturnScriptBuffer = script.decompile(tx.outs[0].script)[1]
+    const ccTransaction = CC.fromHex(opReturnScriptBuffer)
     assert.equal(ccTransaction.type, 'burn')
     assert.equal(ccTransaction.payments[0].burn, true)
     assert.equal(ccTransaction.payments[0].input, 0)
