@@ -1,4 +1,4 @@
-const ccEncoding = require('../index').IssuanceFlagsEncoder
+const issuanceFlagsEncoder = require('../index').IssuanceFlagsEncoder
 const assert = require('assert')
 
 const consumer = function (buff) {
@@ -27,6 +27,31 @@ describe('Test issue flags encoder', function () {
         lockStatus: false,
         aggregationPolicy: 'aggregatable',
       },
+      {
+        divisibility: 11,
+        lockStatus: false,
+        aggregationPolicy: 'aggregatable',
+      },
+      {
+        divisibility: 12,
+        lockStatus: false,
+        aggregationPolicy: 'aggregatable',
+      },
+      {
+        divisibility: 13,
+        lockStatus: false,
+        aggregationPolicy: 'aggregatable',
+      },
+      {
+        divisibility: 14,
+        lockStatus: false,
+        aggregationPolicy: 'aggregatable',
+      },
+      {
+        divisibility: 15,
+        lockStatus: false,
+        aggregationPolicy: 'aggregatable',
+      },
       { divisibility: 0, lockStatus: true, aggregationPolicy: 'aggregatable' },
       { divisibility: 1, lockStatus: true, aggregationPolicy: 'aggregatable' },
       { divisibility: 2, lockStatus: true, aggregationPolicy: 'aggregatable' },
@@ -35,8 +60,60 @@ describe('Test issue flags encoder', function () {
       { divisibility: 5, lockStatus: true, aggregationPolicy: 'aggregatable' },
       { divisibility: 6, lockStatus: true, aggregationPolicy: 'aggregatable' },
       { divisibility: 7, lockStatus: true, aggregationPolicy: 'aggregatable' },
+      { divisibility: 8, lockStatus: true, aggregationPolicy: 'aggregatable' },
+      { divisibility: 9, lockStatus: true, aggregationPolicy: 'aggregatable' },
+      { divisibility: 10, lockStatus: true, aggregationPolicy: 'aggregatable' },
+      { divisibility: 11, lockStatus: true, aggregationPolicy: 'aggregatable' },
+      { divisibility: 12, lockStatus: true, aggregationPolicy: 'aggregatable' },
+      { divisibility: 13, lockStatus: true, aggregationPolicy: 'aggregatable' },
+      { divisibility: 14, lockStatus: true, aggregationPolicy: 'aggregatable' },
+      { divisibility: 15, lockStatus: true, aggregationPolicy: 'aggregatable' },
 
       { divisibility: 0, lockStatus: false, aggregationPolicy: 'dispersed' },
+      { divisibility: 0, lockStatus: true, aggregationPolicy: 'dispersed' },
+    ]
+
+    for (let i = 0; i < testCase.length; i++) {
+      const code = issuanceFlagsEncoder.encode(testCase[i])
+      const decode = issuanceFlagsEncoder.decode(consumer(code))
+      assert.strictEqual(
+        decode.divisibility,
+        testCase[i].divisibility,
+        'Divisibility encode has problems'
+      )
+      assert.strictEqual(
+        decode.lockStatus,
+        testCase[i].lockStatus,
+        'LockStatus encode has problems'
+      )
+      assert.strictEqual(
+        decode.aggregationPolicy,
+        testCase[i].aggregationPolicy,
+        'Aggregate policy has problems'
+      )
+    }
+
+    done()
+  })
+
+  it('should use aggregatable for policy if not defined', function (done) {
+    const code = issuanceFlagsEncoder.encode({
+      divisibility: 0,
+      lockStatus: false,
+    })
+    const decode = issuanceFlagsEncoder.decode(consumer(code))
+    assert.strictEqual(
+      decode.aggregationPolicy,
+      'aggregatable',
+      'Aggregate policy has problems'
+    )
+
+    done()
+  })
+
+  it('should restrict the divisibility to 0 if aggregationPolicy is dispersed', function (done) {
+    this.timeout(0)
+    const testCase = [
       { divisibility: 1, lockStatus: false, aggregationPolicy: 'dispersed' },
       { divisibility: 2, lockStatus: false, aggregationPolicy: 'dispersed' },
       { divisibility: 3, lockStatus: false, aggregationPolicy: 'dispersed' },
@@ -44,7 +121,14 @@ describe('Test issue flags encoder', function () {
       { divisibility: 5, lockStatus: false, aggregationPolicy: 'dispersed' },
       { divisibility: 6, lockStatus: false, aggregationPolicy: 'dispersed' },
       { divisibility: 7, lockStatus: false, aggregationPolicy: 'dispersed' },
-      { divisibility: 0, lockStatus: true, aggregationPolicy: 'dispersed' },
+      { divisibility: 8, lockStatus: false, aggregationPolicy: 'dispersed' },
+      { divisibility: 9, lockStatus: false, aggregationPolicy: 'dispersed' },
+      { divisibility: 10, lockStatus: false, aggregationPolicy: 'dispersed' },
+      { divisibility: 11, lockStatus: false, aggregationPolicy: 'dispersed' },
+      { divisibility: 12, lockStatus: false, aggregationPolicy: 'dispersed' },
+      { divisibility: 13, lockStatus: false, aggregationPolicy: 'dispersed' },
+      { divisibility: 14, lockStatus: false, aggregationPolicy: 'dispersed' },
+      { divisibility: 15, lockStatus: false, aggregationPolicy: 'dispersed' },
       { divisibility: 1, lockStatus: true, aggregationPolicy: 'dispersed' },
       { divisibility: 2, lockStatus: true, aggregationPolicy: 'dispersed' },
       { divisibility: 3, lockStatus: true, aggregationPolicy: 'dispersed' },
@@ -52,22 +136,30 @@ describe('Test issue flags encoder', function () {
       { divisibility: 5, lockStatus: true, aggregationPolicy: 'dispersed' },
       { divisibility: 6, lockStatus: true, aggregationPolicy: 'dispersed' },
       { divisibility: 7, lockStatus: true, aggregationPolicy: 'dispersed' },
+      { divisibility: 8, lockStatus: true, aggregationPolicy: 'dispersed' },
+      { divisibility: 9, lockStatus: true, aggregationPolicy: 'dispersed' },
+      { divisibility: 10, lockStatus: true, aggregationPolicy: 'dispersed' },
+      { divisibility: 11, lockStatus: true, aggregationPolicy: 'dispersed' },
+      { divisibility: 12, lockStatus: true, aggregationPolicy: 'dispersed' },
+      { divisibility: 13, lockStatus: true, aggregationPolicy: 'dispersed' },
+      { divisibility: 14, lockStatus: true, aggregationPolicy: 'dispersed' },
+      { divisibility: 15, lockStatus: true, aggregationPolicy: 'dispersed' },
     ]
 
     for (let i = 0; i < testCase.length; i++) {
-      const code = ccEncoding.encode(testCase[i])
-      const decode = ccEncoding.decode(consumer(code))
-      assert.equal(
+      const code = issuanceFlagsEncoder.encode(testCase[i])
+      const decode = issuanceFlagsEncoder.decode(consumer(code))
+      assert.strictEqual(
         decode.divisibility,
-        testCase[i].divisibility,
+        0,
         'Divisibility encode has problems'
       )
-      assert.equal(
+      assert.strictEqual(
         decode.lockStatus,
         testCase[i].lockStatus,
         'LockStatus encode has problems'
       )
-      assert.equal(
+      assert.strictEqual(
         decode.aggregationPolicy,
         testCase[i].aggregationPolicy,
         'Aggregate policy has problems'
@@ -102,14 +194,19 @@ describe('Test issue flags encoder', function () {
         lockStatus: false,
         aggregationPolicy: 'aggregatable',
       },
+      {
+        divisibility: 16,
+        lockStatus: false,
+        aggregationPolicy: 'aggregatable',
+      },
     ]
 
     for (let i = 0; i < testCase.length; i++) {
       assert.throws(
         function () {
-          ccEncoding.encode(testCase[i])
+          issuanceFlagsEncoder.encode(testCase[i])
         },
-        'Divisibility not in range',
+        /Divisibility not in range/,
         'Wrong fail'
       )
     }
@@ -130,7 +227,7 @@ describe('Test issue flags encoder', function () {
     for (let i = 0; i < testCase.length; i++) {
       assert.throws(
         function () {
-          ccEncoding.encode(testCase[i])
+          issuanceFlagsEncoder.encode(testCase[i])
         },
         /Invalid aggregation policy/,
         'Wrong fail'

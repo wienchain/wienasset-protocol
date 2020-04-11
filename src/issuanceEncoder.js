@@ -1,3 +1,7 @@
+const sffc = require('sffc-encoder')
+const issueFlagsCodex = require('./issueFlagsEncoder.js')
+const paymentCodex = require('./paymentEncoder.js')
+
 const OP_CODES = [
   Buffer.from([0x00]), // wild-card to be defined
   Buffer.from([0x01]), // All Hashes in OP_RETURN - Pay-to-PubkeyHash
@@ -9,10 +13,6 @@ const OP_CODES = [
   Buffer.from([0x07]), // All Hashes with IPFS in OP_RETURN - Pay-to-PubkeyHash
   Buffer.from([0x08]), // IPFS Hash in Pay-to-Script-Hash multi-sig output (1 out of 2)
 ]
-
-const sffc = require('sffc-encoder')
-const issueFlagsCodex = require('./issueFlagsEncoder.js')
-const paymentCodex = require('./paymentEncoder.js')
 
 const consumer = function (buff) {
   let curr = 0
@@ -38,14 +38,18 @@ module.exports = {
   encode: function (data, byteSize) {
     if (!data) throw new Error('Missing Data')
     if (typeof data.amount === 'undefined') throw new Error('Missing amount')
-    if (typeof data.lockStatus === 'undefined')
+    if (typeof data.lockStatus === 'undefined') {
       throw new Error('Missing lockStatus')
-    if (typeof data.divisibility === 'undefined')
+    }
+    if (typeof data.divisibility === 'undefined') {
       throw new Error('Missing divisibility')
-    if (typeof data.aggregationPolicy === 'undefined')
+    }
+    if (typeof data.aggregationPolicy === 'undefined') {
       throw new Error('Missing aggregationPolicy')
-    if (typeof data.protocol === 'undefined')
+    }
+    if (typeof data.protocol === 'undefined') {
       throw new Error('Missing protocol')
+    }
     if (typeof data.version === 'undefined') throw new Error('Missing version')
     let opcode
     let hash = Buffer.alloc(0)
@@ -66,10 +70,13 @@ module.exports = {
     const issueTail = Buffer.concat([amount, payments, issueFlagsByte])
     let issueByteSize = issueHeader.length + issueTail.length + 1
 
-    if (issueByteSize > byteSize)
+    if (issueByteSize > byteSize) {
       throw new Error('Data code is bigger then the allowed byte size')
+    }
+
+    let leftover = []
     if (data.ipfsHash) {
-      const leftover = [data.ipfsHash]
+      leftover = [data.ipfsHash]
 
       opcode = OP_CODES[8]
       issueByteSize = issueByteSize + data.ipfsHash.length
@@ -84,10 +91,12 @@ module.exports = {
         leftover: leftover,
       }
     }
+
     if (!data.sha2) {
       if (data.torrentHash) {
-        if (issueByteSize + data.torrentHash.length > byteSize)
+        if (issueByteSize + data.torrentHash.length > byteSize) {
           throw new Error("Can't fit Torrent Hash in byte size")
+        }
         return {
           codeBuffer: Buffer.concat([
             issueHeader,
@@ -104,20 +113,24 @@ module.exports = {
         leftover: [],
       }
     }
-    if (!data.torrentHash) throw new Error('Torrent Hash is missing')
-    const leftover = [data.torrentHash, data.sha2]
 
-    opcode = OP_CODES[3]
-    issueByteSize = issueByteSize + data.torrentHash.length
+    if (!data.torrentHash) {
+      throw new Error('Torrent Hash is missing')
+    } else {
+      leftover = [data.torrentHash, data.sha2]
 
-    if (issueByteSize <= byteSize) {
-      hash = Buffer.concat([hash, leftover.shift()])
-      opcode = OP_CODES[2]
-      issueByteSize = issueByteSize + data.sha2.length
-    }
-    if (issueByteSize <= byteSize) {
-      hash = Buffer.concat([hash, leftover.shift()])
-      opcode = OP_CODES[1]
+      opcode = OP_CODES[3]
+      issueByteSize = issueByteSize + data.torrentHash.length
+
+      if (issueByteSize <= byteSize) {
+        hash = Buffer.concat([hash, leftover.shift()])
+        opcode = OP_CODES[2]
+        issueByteSize = issueByteSize + data.sha2.length
+      }
+      if (issueByteSize <= byteSize) {
+        hash = Buffer.concat([hash, leftover.shift()])
+        opcode = OP_CODES[1]
+      }
     }
 
     return {

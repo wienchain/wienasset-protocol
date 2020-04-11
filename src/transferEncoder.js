@@ -57,10 +57,12 @@ module.exports = {
     const payments = paymentEncoder.encodeBulk(data.payments)
     let issueByteSize = transferHeader.length + payments.length + 1
 
-    if (issueByteSize > byteSize)
+    if (issueByteSize > byteSize) {
       throw new Error('Data code is bigger then the allowed byte size')
+    }
+    let leftover = []
     if (data.ipfsHash) {
-      const leftover = [data.ipfsHash]
+      leftover = [data.ipfsHash]
 
       opcode = OP_CODES[7]
       issueByteSize = issueByteSize + data.ipfsHash.length
@@ -78,8 +80,9 @@ module.exports = {
     if (!data.sha2) {
       if (data.torrentHash) {
         opcode = data.noRules ? OP_CODES[4] : OP_CODES[3]
-        if (issueByteSize + data.torrentHash.length > byteSize)
+        if (issueByteSize + data.torrentHash.length > byteSize) {
           throw new Error("Can't fit Torrent Hash in byte size")
+        }
         return {
           codeBuffer: Buffer.concat([
             transferHeader,
@@ -101,7 +104,7 @@ module.exports = {
       }
     }
     if (!data.torrentHash) throw new Error('Torrent Hash is missing')
-    const leftover = [data.torrentHash, data.sha2]
+    leftover = [data.torrentHash, data.sha2]
 
     opcode = OP_CODES[2]
     issueByteSize = issueByteSize + data.torrentHash.length

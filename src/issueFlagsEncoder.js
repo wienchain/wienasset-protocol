@@ -8,15 +8,18 @@ const padLeadingZeros = function (hex, byteSize) {
 
 module.exports = {
   encode: function (flags) {
-    const divisibility = flags.divisibility || 0
+    let divisibility = flags.divisibility || 0
     const lockStatus = flags.lockStatus || false
     let aggregationPolicy = flags.aggregationPolicy || aggregationPolicies[0]
-    if (divisibility < 0 || divisibility > 15)
+    if (divisibility < 0 || divisibility > 15) {
       throw new Error('Divisibility not in range')
+    }
     if (
       (aggregationPolicy = aggregationPolicies.indexOf(aggregationPolicy)) < 0
-    )
+    ) {
       throw new Error('Invalid aggregation policy')
+    }
+    if (aggregationPolicy === 2) divisibility = 0
     let result = divisibility << 1
     let lockStatusFlag = 0
     lockStatus && (lockStatusFlag = 1)

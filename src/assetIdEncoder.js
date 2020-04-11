@@ -12,15 +12,15 @@ const LOCKEPADDING = {
   hybrid: 0x2102,
   dispersed: 0x20e4,
 }
-const BTC_P2PKH = 0x41
-const BTC_TESTNET_P2PKH = 0x8c
-const BTC_P2SH = 0x12
-const BTC_TESTNET_P2SH = 0x13
+const WIEN_P2PKH = 0x87
+const WIEN_TESTNET_P2PKH = 0x49
+const WIEN_P2SH = 0x13
+const WIEN_TESTNET_P2SH = 0x12
 const NETWORKVERSIONS = [
-  BTC_P2PKH,
-  BTC_TESTNET_P2PKH,
-  BTC_P2SH,
-  BTC_TESTNET_P2SH,
+  WIEN_P2PKH,
+  WIEN_TESTNET_P2PKH,
+  WIEN_P2SH,
+  WIEN_TESTNET_P2SH,
 ]
 const POSTFIXBYTELENGTH = 2
 
@@ -104,15 +104,16 @@ const createIdFromAddress = function (address, padding, divisibility) {
   const versionBuffer = addressBuffer.slice(0, 1)
   const version = parseInt(versionBuffer.toString('hex'), 16)
   debug('version = ', version)
-  if (NETWORKVERSIONS.indexOf(version) === -1)
+  if (NETWORKVERSIONS.indexOf(version) === -1) {
     throw new Error('Unrecognized address network')
-  if (version === BTC_P2SH || version === BTC_TESTNET_P2SH) {
+  }
+  if (version === WIEN_P2SH || version === WIEN_TESTNET_P2SH) {
     const scriptHash = addressBuffer.slice(versionBuffer.length, 21)
     const scriptHashOutput = bitcoin.script.scriptHashOutput(scriptHash)
     debug('scriptHashOutput = ', scriptHashOutput)
     return hashAndBase58CheckEncode(scriptHashOutput, padding, divisibility)
   }
-  if (version === BTC_P2PKH || version === BTC_TESTNET_P2PKH) {
+  if (version === WIEN_P2PKH || version === WIEN_TESTNET_P2PKH) {
     const pubKeyHash = addressBuffer.slice(versionBuffer.length, 21)
     const pubKeyHashOutput = bitcoin.script.pubKeyHashOutput(pubKeyHash)
     debug('pubKeyHashOutput = ', pubKeyHashOutput)
@@ -141,19 +142,26 @@ const hashAndBase58CheckEncode = function (
   return bs58check.encode(concatenation)
 }
 
-module.exports = function (bitcoinTransaction) {
-  debug('bitcoinTransaction.txid = ', bitcoinTransaction.txid)
-  if (!bitcoinTransaction.ccdata)
+module.exports = function (wienchainTransaction) {
+  debug('wienchainTransaction.txid = ', wienchainTransaction.txid)
+  if (!wienchainTransaction.ccdata) {
     throw new Error('Missing Colored Coin Metadata')
-  if (bitcoinTransaction.ccdata[0].type !== 'issuance')
+  }
+  if (wienchainTransaction.ccdata[0].type !== 'issuance') {
     throw new Error('Not An issuance transaction')
-  if (typeof bitcoinTransaction.ccdata[0].lockStatus === 'undefined')
+  }
+  if (typeof wienchainTransaction.ccdata[0].lockStatus === 'undefined') {
     throw new Error('Missing Lock Status data')
-  const lockStatus = bitcoinTransaction.ccdata[0].lockStatus
+  }
+  const lockStatus = wienchainTransaction.ccdata[0].lockStatus
   const aggregationPolicy =
-    bitcoinTransaction.ccdata[0].aggregationPolicy || 'aggregatable'
-  const divisibility = bitcoinTransaction.ccdata[0].divisibility || 0
-  const firstInput = bitcoinTransaction.vin[0]
+    wienchainTransaction.ccdata[0].aggregationPolicy || 'aggregatable'
+  const divisibility =
+    aggregationPolicy === 'aggregatable' &&
+    wienchainTransaction.ccdata[0].divisibility
+      ? wienchainTransaction.ccdata[0].divisibility
+      : 0
+  const firstInput = wienchainTransaction.vin[0]
   let padding
   if (lockStatus) {
     padding = LOCKEPADDING[aggregationPolicy]

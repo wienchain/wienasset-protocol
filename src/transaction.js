@@ -15,7 +15,7 @@ const OP_CODES = {
   burn: {
     start: 0x20,
     end: 0x2f,
-    encoder: require('./burnPaymentEncoder'),
+    encoder: require('./transferEncoder'),
   },
 }
 
@@ -132,7 +132,9 @@ Transaction.prototype.addBurn = function (input, amount, percent) {
  * @param {Number=} divisibility - the divisibility of the asset to issue - how many decimal points can an asset unit have. Integer.
  */
 Transaction.prototype.setAmount = function (amount, divisibility) {
-  if (typeof amount === 'undefined') throw new Error('Amount has to be defined')
+  if (typeof amount === 'undefined') {
+    throw new Error('Amount has to be defined')
+  }
   this.type = 'issuance'
   this.divisibility = divisibility || 0
   this.amount = amount

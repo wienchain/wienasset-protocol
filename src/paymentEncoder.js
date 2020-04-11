@@ -15,11 +15,13 @@ module.exports = {
     const skip = paymentObject.skip || false
     const range = paymentObject.range || false
     const percent = paymentObject.percent || false
-    if (typeof paymentObject.output === 'undefined')
+    if (typeof paymentObject.output === 'undefined') {
       throw new Error('Needs output value')
+    }
     const output = paymentObject.output
-    if (typeof paymentObject.amount === 'undefined')
+    if (typeof paymentObject.amount === 'undefined') {
       throw new Error('Needs amount value')
+    }
     const amount = paymentObject.amount
     const outputBinaryLength = output.toString(2).length
     if (output < 0) throw new Error("Output Can't be negative")
@@ -40,8 +42,9 @@ module.exports = {
 
   decode: function (consume) {
     const flagsBuffer = consume(1)[0]
-    if (typeof flagsBuffer === 'undefined')
+    if (typeof flagsBuffer === 'undefined') {
       throw new Error('No flags are found')
+    }
     let output = Buffer.from([flagsBuffer & ~flagMask])
     const flags = flagsBuffer & flagMask
     const skip = !!(flags & skipFlag)

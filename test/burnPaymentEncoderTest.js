@@ -58,11 +58,11 @@ describe('Payment Decode Encode', function () {
     for (let i = 0; i < testCase.length; i++) {
       const code = paymentEncode.encode(testCase[i])
       const decode = paymentEncode.decode(consumer(code))
-      assert.equal(testCase[i].skip, decode.skip)
-      assert.equal(testCase[i].range, decode.range)
-      assert.equal(testCase[i].percent, decode.percent)
-      assert.equal(testCase[i].output, decode.output)
-      assert.equal(testCase[i].amount, decode.amount)
+      assert.strictEqual(testCase[i].skip, decode.skip)
+      assert.strictEqual(testCase[i].range, decode.range)
+      assert.strictEqual(testCase[i].percent, decode.percent)
+      assert.strictEqual(testCase[i].output, decode.output)
+      assert.strictEqual(testCase[i].amount, decode.amount)
     }
     done()
   })
@@ -92,7 +92,6 @@ describe('Payment Decode Encode', function () {
       amount: 10,
       burn: true,
     })
-
     assert.deepEqual(testCase1, Buffer.from([0x1f, 0x0d]))
     assert.deepEqual(testCase2, Buffer.from([0x9f, 0x27, 0xb0]))
     assert.deepEqual(testCase3, Buffer.from([0x3f, 0x19]))
@@ -111,10 +110,10 @@ describe('Payment Decode Encode', function () {
     for (let i = 0; i < testCases.length; i++) {
       const code = paymentEncode.encode(testCases[i])
       const decode = paymentEncode.decode(consumer(code))
-      assert.equal(testCases[i].skip, decode.skip)
-      assert.equal(testCases[i].percent, decode.percent)
-      assert.equal(testCases[i].burn, decode.burn)
-      assert.equal(testCases[i].amount, decode.amount)
+      assert.strictEqual(testCases[i].skip, decode.skip)
+      assert.strictEqual(testCases[i].percent, decode.percent)
+      assert.strictEqual(testCases[i].burn, decode.burn)
+      assert.strictEqual(testCases[i].amount, decode.amount)
     }
     done()
   })
@@ -168,18 +167,24 @@ describe('Payment Decode Encode', function () {
     const decode = paymentEncode.decodeBulk(consumer(code))
 
     for (let i = 0; i < testCase.length; i++) {
-      assert.equal(testCase[i].skip, decode[i].skip)
-      assert.equal(testCase[i].range, decode[i].range)
-      assert.equal(testCase[i].percent, decode[i].percent)
-      assert.equal(testCase[i].output, decode[i].output)
-      assert.equal(testCase[i].amount, decode[i].amount)
+      assert.strictEqual(testCase[i].skip, decode[i].skip)
+      assert.strictEqual(testCase[i].range, decode[i].range)
+      assert.strictEqual(testCase[i].percent, decode[i].percent)
+      assert.strictEqual(testCase[i].output, decode[i].output)
+      assert.strictEqual(testCase[i].amount, decode[i].amount)
     }
     done()
   })
 
   it('should throw output value out of bounds error', function (done) {
     const testCases = [
-      { skip: false, range: false, percent: true, output: 32, amount: 3213213 },
+      {
+        skip: false,
+        range: false,
+        percent: true,
+        output: 256,
+        amount: 3213213,
+      },
       { skip: true, range: true, percent: false, output: 8192, amount: 321321 },
     ]
 
