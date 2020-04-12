@@ -60,7 +60,7 @@ The rules by which the colored coins software transfers assets between inputs an
 * All assets with remaining amounts are automatically transferred to the last output.
 
 ## WIEN requirements
-* A minimal dust amount (0.000005441 WIEN) is sent to each output for validity
+* A minimal dust amount (0.000005741 WIEN) is sent to each output for validity
 * A transaction fee is left for miners to finance the processing of the transaction
 
 ## Examples

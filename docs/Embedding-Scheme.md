@@ -58,7 +58,7 @@ Optionally, we can also transfer assets during a burn transaction.
 
 | Bytes|Description              |Comments|Stored in|
 | :----: |-------------------------------------|--------|-------|
-| 2      | Protocol Identifier                 | `0x5441` ASCII representation of the string TA ("Trive Asset")| OP_RETURN |
+| 2      | Protocol Identifier                 | `0x5741` ASCII representation of the string WA ("WienAsset")| OP_RETURN |
 | 1      | Version Number                      | Currently `0x03`| OP_RETURN |
 | 1      | **Issuance** [OP_CODEs](OP_CODEs)| | OP_RETURN |
 | 34     | IPFS Hash | *OPTIONAL*, only when metadata is included| OP_RETURN<br/> or (1\|**2**) Multisig |
@@ -70,7 +70,7 @@ Optionally, we can also transfer assets during a burn transaction.
 
 | Bytes |Description                   |Comments|Stored in|
 | :----: |-------------------------------------|--------|:-------:|
-| 2      | Protocol Identifier                 | `0x5441` ASCII representation of the string TA ("Trive Asset")| OP_RETURN |
+| 2      | Protocol Identifier                 | `0x5741` ASCII representation of the string WA ("WienAsset")| OP_RETURN |
 | 1      | Version Number                      | Currently `0x03`| OP_RETURN |
 | 1      | **Transfer** [OP_CODEs](OP_CODEs)| | OP_RETURN |
 | 34     | IPFS Hash | *OPTIONAL*, only when metadata is included| OP_RETURN<br/> or (1\|**2**) Multisig |
