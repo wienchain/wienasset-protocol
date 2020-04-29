@@ -12,10 +12,10 @@ const LOCKEPADDING = {
   hybrid: 0x2102,
   dispersed: 0x20e4,
 }
-const WIEN_P2PKH = 0x87
-const WIEN_TESTNET_P2PKH = 0x49
-const WIEN_P2SH = 0x13
-const WIEN_TESTNET_P2SH = 0x12
+const WIEN_P2PKH = 0x49
+const WIEN_TESTNET_P2PKH = 0x87
+const WIEN_P2SH = 0x12
+const WIEN_TESTNET_P2SH = 0x13
 const NETWORKVERSIONS = [
   WIEN_P2PKH,
   WIEN_TESTNET_P2PKH,
