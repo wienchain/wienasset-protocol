@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "coveralls": "^3.0.11",
-    "docsify": "^4.11.3",
+    "docsify": "^4.12.0",
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.10.1",
     "eslint-config-standard": "^14.1.1",
